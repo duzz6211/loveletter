@@ -1,0 +1,963 @@
+﻿/* =========================================================================
+   room-features.css — 방마다 다른 설치물
+
+     · 실 타임라인   (우리의 이야기)
+     · 핀보드        (윤영 사용설명서)
+     · 매달린 메모지 (오늘의 말)
+     · 시한 장치     (미래 편지 — 남은 시간 타이머)
+     · 전시 복도     (함께 간 곳 — 실제로 걸어 들어간다)
+     · 금고          (비밀 공간)
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   1. 실 타임라인 — 벽에 못을 박고 실을 늘어뜨린 사진판
+   ------------------------------------------------------------------------- */
+
+.thread {
+  position: relative;
+  margin: 0;
+  padding: 1.2rem 0 1rem;
+  list-style: none;
+}
+/* 벽을 세로로 가로지르는 실 */
+.thread::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(rgba(255, 216, 77, 0.05), rgba(255, 216, 77, 0.55) 12%, rgba(255, 216, 77, 0.55) 88%, transparent);
+}
+
+.thread > li {
+  position: relative;
+  width: calc(50% - 1.6rem);
+  margin-bottom: var(--sp-4);
+}
+.thread > li:nth-child(odd)  { margin-right: auto; }
+.thread > li:nth-child(even) { margin-left: auto; }
+
+/* 실에서 카드로 이어지는 가지 + 못 */
+.thread > li::before {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  width: 1.6rem; height: 1px;
+  background: rgba(255, 216, 77, 0.5);
+}
+.thread > li:nth-child(odd)::before  { right: -1.6rem; }
+.thread > li:nth-child(even)::before { left: -1.6rem; }
+
+.thread > li::after {
+  content: "";
+  position: absolute;
+  top: 1.24rem;
+  width: 0.52rem; height: 0.52rem;
+  border-radius: 50%;
+  background: var(--c-gold);
+  box-shadow: 0 0 0.7rem var(--c-gold-glow);
+}
+.thread > li:nth-child(odd)::after  { right: -1.86rem; }
+.thread > li:nth-child(even)::after { left: -1.86rem; }
+
+/* 벽에 테이프로 붙인 종이 */
+.thread-card {
+  position: relative;
+  padding: 0.95rem 1rem 1rem;
+  border-radius: 0.12rem;
+  background: linear-gradient(158deg, #FFF6D6, #E7D9AA);
+  color: #33240F;
+  /* 종이 한 장이 아니라 몇 장이 겹쳐 벽에 붙어 있다 */
+  box-shadow:
+    var(--paper-stack),
+    0 0.8rem 1.8rem rgba(0, 0, 0, 0.55),
+    inset 0 0.08rem 0 rgba(255, 255, 255, 0.8),
+    inset 0 -0.08rem 0 rgba(120, 96, 46, 0.28);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.thread-card:hover {
+  transform: rotate(0deg) translateY(-0.25rem);
+  box-shadow:
+    var(--paper-stack),
+    0 1.3rem 2.6rem rgba(0, 0, 0, 0.68),
+    inset 0 0.08rem 0 rgba(255, 255, 255, 0.85);
+}
+/* 위쪽 테이프 */
+.thread-card::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: -0.5rem;
+  width: 3rem; height: 1rem;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(255, 244, 189, 0.32);
+  border-left: 1px dashed rgba(0, 0, 0, 0.12);
+  border-right: 1px dashed rgba(0, 0, 0, 0.12);
+}
+.thread-card time {
+  display: block;
+  color: #8A6A1E;
+  font-family: var(--f-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+.thread-card h3 {
+  margin: 0.3rem 0 0.4rem;
+  font-family: var(--f-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  word-break: keep-all;
+}
+.thread-card p {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.72;
+  word-break: keep-all;
+}
+.thread-card p:last-child { margin-bottom: 0; }
+
+@media (max-width: 720px) {
+  .thread::before { left: 0.6rem; }
+  .thread > li,
+  .thread > li:nth-child(even) { width: auto; margin-left: 2.2rem; margin-right: 0; }
+  .thread > li::before,
+  .thread > li:nth-child(odd)::before,
+  .thread > li:nth-child(even)::before { left: -1.6rem; right: auto; }
+  .thread > li::after,
+  .thread > li:nth-child(odd)::after,
+  .thread > li:nth-child(even)::after { left: -1.86rem; right: auto; }
+}
+
+/* -------------------------------------------------------------------------
+   2. 핀보드 — 코르크판에 압정으로 꽂은 카드
+   ------------------------------------------------------------------------- */
+
+.corkboard {
+  padding: clamp(0.9rem, 2.5vw, 1.6rem);
+  /* 나무틀 — 빛은 왼쪽 위에서 온다 */
+  border: 0.5rem solid;
+  border-color: #7B5C25 #452F0F #452F0F #7B5C25;
+  border-radius: 0.2rem;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(0, 0, 0, 0.1) 0 2px, transparent 3px),
+    radial-gradient(circle at 68% 72%, rgba(0, 0, 0, 0.08) 0 2px, transparent 3px),
+    linear-gradient(150deg, #8A6A3A, #6B4F26);
+  background-size: 1.4rem 1.4rem, 1.9rem 1.9rem, 100% 100%;
+  box-shadow:
+    inset 0.12rem 0.12rem 0.4rem rgba(0, 0, 0, 0.75),
+    inset 0 0 3rem rgba(0, 0, 0, 0.45),
+    0 0 0 0.09rem rgba(0, 0, 0, 0.6),
+    var(--lift-3);
+}
+
+.corkboard + .corkboard { margin-top: var(--sp-4); }
+
+.corkboard-title {
+  margin: 0 0 0.9rem;
+  color: #FFF0C0;
+  font-family: var(--f-display);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.pin-grid {
+  display: grid;
+  gap: 1.1rem 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+}
+
+.pin-card {
+  position: relative;
+  padding: 1.1rem 0.85rem 0.9rem;
+  border-radius: 0.1rem;
+  background: linear-gradient(160deg, #FFFBE8, #F0E4BE);
+  color: #33240F;
+  box-shadow:
+    0.22rem 0.24rem 0 -0.05rem rgba(226, 210, 174, 0.6),
+    0 0.7rem 1.5rem rgba(0, 0, 0, 0.45),
+    inset 0 0.08rem 0 rgba(255, 255, 255, 0.85),
+    inset 0 -0.08rem 0 rgba(120, 96, 46, 0.24);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.pin-card:hover {
+  transform: rotate(0deg) scale(1.03);
+  box-shadow:
+    0.22rem 0.24rem 0 -0.05rem rgba(226, 210, 174, 0.6),
+    0 1.1rem 2.4rem rgba(0, 0, 0, 0.6),
+    inset 0 0.08rem 0 rgba(255, 255, 255, 0.9);
+  z-index: 2;
+}
+/* 압정 — 반구가 종이 위로 솟아 있고, 그 밑에 눌린 자국이 남는다 */
+.pin-card::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 0.4rem;
+  width: 0.68rem; height: 0.68rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 33% 28%, #FFC9C9 0%, #FF7A7A 26%, #C13636 66%, #6E1919 100%);
+  box-shadow:
+    0 0.24rem 0.42rem rgba(0, 0, 0, 0.6),
+    inset -0.06rem -0.08rem 0.14rem rgba(0, 0, 0, 0.45);
+}
+.pin-card h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--f-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  word-break: keep-all;
+}
+.pin-card p {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+.pin-card p:last-child { margin-bottom: 0; }
+
+/* -------------------------------------------------------------------------
+   3. 오늘의 말 — 천장에서 쪽지 한 장이 내려온다
+   ------------------------------------------------------------------------- */
+
+.dangle-stage {
+  position: relative;
+  min-height: clamp(15rem, 42vh, 22rem);
+  display: flex;
+  justify-content: center;
+}
+
+/* 내려온 쪽지를 매단 실 */
+.dangle-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: -1.6rem;
+  width: 1px; height: 3.4rem;
+  background: linear-gradient(rgba(255, 244, 189, 0.1), rgba(255, 244, 189, 0.6));
+}
+
+.dangle {
+  position: relative;
+  align-self: flex-start;
+  margin-top: 1.8rem;
+  width: min(100%, 26rem);
+  padding: clamp(1.6rem, 4vw, 2.6rem) clamp(1.2rem, 3.5vw, 2rem);
+  border-radius: 0.15rem;
+  background: linear-gradient(165deg, #FFF7DC, #EADCAF);
+  color: #33240F;
+  text-align: center;
+  transform-origin: top center;
+  box-shadow:
+    var(--paper-stack),
+    0 1.4rem 3rem rgba(0, 0, 0, 0.62),
+    inset 0 0.08rem 0 rgba(255, 255, 255, 0.85),
+    inset 0 -0.08rem 0 rgba(120, 96, 46, 0.26);
+  animation: dangle-drop 0.75s cubic-bezier(0.24, 1.2, 0.4, 1);
+}
+.dangle.is-swapping { animation: dangle-lift 0.42s ease-in forwards; }
+
+/* 집게 — 놋쇠 조각. 가운데 이음선이 있어야 두 짝으로 보인다. */
+.dangle::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: -0.35rem;
+  width: 1.15rem; height: 0.58rem;
+  transform: translateX(-50%);
+  border-radius: 0.1rem;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.32) 0 46%, transparent 46% 54%, rgba(0, 0, 0, 0.32) 54%),
+    linear-gradient(180deg, #FFF0C4 0%, #D8BC72 40%, #8E7327 100%);
+  box-shadow:
+    0 0.24rem 0.5rem rgba(0, 0, 0, 0.6),
+    inset 0 0.06rem 0 rgba(255, 255, 255, 0.6);
+}
+/* 접힌 자국 — 종이가 접혔던 자리에는 그늘과 빛이 나란히 남는다 */
+.dangle::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 2px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.7));
+}
+
+/* 천장에서 내려온 쪽지 — 손으로 적어 매달아 둔 것 */
+.dangle blockquote {
+  margin: 0;
+  font-family: var(--f-hand);
+  font-size: clamp(1.42rem, 3.6vw, 1.95rem);
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+@keyframes dangle-drop {
+  0%   { transform: translateY(-7rem) rotate(-4deg); opacity: 0; }
+  65%  { transform: translateY(0.5rem) rotate(1.6deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+@keyframes dangle-lift {
+  to { transform: translateY(-8rem) rotate(4deg); opacity: 0; }
+}
+
+/* -------------------------------------------------------------------------
+   4. 미래 편지 — 벽에 걸린 시한 장치
+   ------------------------------------------------------------------------- */
+
+.device-wall {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+}
+
+.device {
+  position: relative;
+  padding: 1.1rem 1.1rem 1.2rem;
+  border: 1px solid rgba(255, 138, 107, 0.28);
+  border-radius: 0.3rem;
+  background: linear-gradient(158deg, #31204A, #100720);
+  box-shadow:
+    var(--lift-2),
+    var(--bevel-up),
+    inset 0 0 2rem rgba(0, 0, 0, 0.7);
+}
+/* 벽에 박아 고정한 나사 — 머리는 솟고, 홈은 파여 있다 */
+.device::before,
+.device::after {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  width: 0.36rem; height: 0.36rem;
+  border-radius: 50%;
+  background:
+    linear-gradient(48deg, transparent 42%, rgba(0, 0, 0, 0.6) 44% 56%, transparent 58%),
+    radial-gradient(circle at 33% 29%, #E4D19A, #B9A46B 45%, #4A3C14 100%);
+  box-shadow:
+    0 0.1rem 0.2rem rgba(0, 0, 0, 0.7),
+    inset -0.04rem -0.04rem 0.08rem rgba(0, 0, 0, 0.5);
+}
+.device::before { left: 0.45rem; }
+.device::after  { right: 0.45rem; }
+
+.device-title {
+  margin: 0 0 0.15rem;
+  font-family: var(--f-display);
+  font-size: 1.04rem;
+  font-weight: 400;
+  word-break: keep-all;
+}
+.device-meta {
+  margin: 0 0 0.85rem;
+  color: var(--c-faint);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+/* 남은 시간 표시창 */
+.fuse-readout {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.7rem 0.5rem 0.6rem;
+  border: 1px solid rgba(255, 138, 107, 0.3);
+  border-radius: 0.2rem;
+  background:
+    /* 유리에 스치는 빛 */
+    linear-gradient(112deg, transparent 46%, rgba(255, 255, 255, 0.05) 48% 55%, transparent 57%),
+    radial-gradient(circle at 50% 30%, #24101B, #0A0410);
+  /* 장치 안으로 파인 창 */
+  box-shadow:
+    var(--bevel-in),
+    inset 0 0 1.6rem rgba(0, 0, 0, 0.85);
+}
+
+.fuse-unit { text-align: center; min-width: 2.6rem; }
+.fuse-num {
+  display: block;
+  font-family: "SFMono-Regular", ui-monospace, "Consolas", "Courier New", monospace;
+  font-size: clamp(1.15rem, 3.4vw, 1.6rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--fuse-color, #FF8A6B);
+  text-shadow: 0 0 0.9rem var(--fuse-color, #FF8A6B);
+}
+.fuse-label {
+  display: block;
+  margin-top: 0.2rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+}
+.fuse-sep {
+  padding-bottom: 1.05rem;
+  color: var(--fuse-color, #FF8A6B);
+  font-size: 1.05rem;
+  animation: fuse-blink 1s step-end infinite;
+}
+@keyframes fuse-blink { 50% { opacity: 0.15; } }
+
+/* 심지 — 남은 시간에 비례해 줄어든다 */
+.fuse-track {
+  position: relative;
+  height: 0.3rem;
+  margin-top: 0.7rem;
+  border-radius: 0.15rem;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0.06rem 0.12rem rgba(0, 0, 0, 0.75);
+  overflow: hidden;
+}
+.fuse-burn {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--burn, 100%);
+  border-radius: 0.15rem;
+  background: linear-gradient(90deg, #5A2318, var(--fuse-color, #FF8A6B));
+  box-shadow: 0 0 0.8rem var(--fuse-color, #FF8A6B);
+  transition: width 1s linear;
+}
+/* 타는 지점의 불티 */
+.fuse-burn::after {
+  content: "";
+  position: absolute;
+  right: -0.16rem; top: 50%;
+  width: 0.42rem; height: 0.42rem;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #FFF0C0;
+  box-shadow: 0 0 0.7rem #FFD84D, 0 0 1.6rem var(--fuse-color, #FF8A6B);
+}
+
+/* 24시간 안쪽이면 장치 전체가 뛴다 */
+.device.is-urgent { --fuse-color: #FF5A48; border-color: rgba(255, 90, 72, 0.55); }
+.device.is-urgent .fuse-readout { animation: device-pulse 1s ease-in-out infinite; }
+@keyframes device-pulse {
+  50% { box-shadow: inset 0 0 1.6rem rgba(0, 0, 0, 0.85), 0 0 1.6rem rgba(255, 90, 72, 0.3); }
+}
+
+/* 열린 편지 */
+.device.is-open { --fuse-color: #FFD84D; border-color: rgba(255, 216, 77, 0.42); }
+.device-body {
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgba(255, 216, 77, 0.28);
+}
+/* 미래 편지 본문도 손으로 쓴 글씨다 (--f-hand 는 얇아서 한 치수 키운다) */
+.device-body p {
+  margin: 0 0 0.6rem;
+  font-family: var(--f-hand);
+  font-size: 1.16rem;
+  line-height: 1.7;
+  color: var(--c-ink);
+  word-break: keep-all;
+}
+.device-body p:last-child { margin-bottom: 0; }
+
+.device-stamp {
+  display: inline-block;
+  margin-top: 0.7rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgba(255, 216, 77, 0.5);
+  border-radius: 0.15rem;
+  color: var(--c-gold);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+}
+
+/* -------------------------------------------------------------------------
+   5. 전시 복도 — 함께 간 곳. 실제로 걸어 들어간다.
+   ------------------------------------------------------------------------- */
+
+.walk {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 46%, #2B1E4E 0, #120A22 38%, #050209 78%);
+  touch-action: pan-y;
+  cursor: grab;
+}
+.walk.is-dragging { cursor: grabbing; }
+
+.walk-space {
+  position: absolute;
+  inset: 0;
+  perspective: 900px;
+  perspective-origin: 50% 44%;
+}
+
+/* 복도 자체가 앞뒤로 움직이고 돌아간다 = 내가 걷고, 몸을 돌린다.
+   rotateY 가 바깥이어야 "걸어간 뒤 그 자리에서 도는" 순서가 된다. */
+.walk-track {
+  position: absolute;
+  z-index: 3;              /* 벽(1)·바닥(2) 보다 앞에 걸린다 */
+  left: 50%; top: 44%;
+  width: 0; height: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(var(--turn, 0deg)) translateZ(var(--walk-z, 0px));
+  transition: transform 0.62s cubic-bezier(0.3, 0.85, 0.25, 1);
+}
+.walk.is-instant .walk-track { transition: none; }
+
+/* 걸을 때의 상하 흔들림 */
+.walk.is-stepping .walk-space { animation: footstep 0.62s ease-in-out; }
+@keyframes footstep {
+  0%   { perspective-origin: 50% 44%; }
+  35%  { perspective-origin: 50% 45.4%; }
+  70%  { perspective-origin: 50% 43.2%; }
+  100% { perspective-origin: 50% 44%; }
+}
+
+/* 복도의 양쪽 벽 — 그림이 허공이 아니라 벽에 걸려 보이도록 */
+.walk-wall {
+  position: absolute;
+  z-index: 1;
+  top: 0; bottom: 0;
+  width: 34%;
+}
+.walk-wall-l {
+  left: 0;
+  clip-path: polygon(0 0, 100% 21%, 100% 79%, 0 100%);
+  background: linear-gradient(90deg, #06020C, #1E1136 62%, #2C1A47);
+}
+.walk-wall-r {
+  right: 0;
+  clip-path: polygon(0 21%, 100% 0, 100% 100%, 0 79%);
+  background: linear-gradient(270deg, #06020C, #1E1136 62%, #2C1A47);
+}
+/* 굽도리 — 벽과 바닥이 만나는 선 */
+.walk-wall::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2.2%;
+  background: linear-gradient(180deg, rgba(255, 216, 77, 0.16), rgba(0, 0, 0, 0.7));
+}
+
+/* 복도 바닥과 천장 */
+.walk-floor,
+.walk-ceil {
+  position: absolute;
+  z-index: 2;
+  left: -20%; right: -20%;
+  height: 92%;
+  background-image:
+    linear-gradient(rgba(226, 206, 160, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 206, 160, 0.1) 1px, transparent 1px);
+  background-size: 100% 3.4rem, 8rem 100%;
+  background-position: 0 var(--tread, 0px), 0 0;
+  transition: background-position 0.62s cubic-bezier(0.3, 0.85, 0.25, 1);
+}
+.walk-floor {
+  bottom: 0;
+  transform: perspective(700px) rotateX(62deg);
+  transform-origin: bottom;
+  background-color: #2A1746;
+  -webkit-mask-image: linear-gradient(transparent, #000 60%);
+  mask-image: linear-gradient(transparent, #000 60%);
+}
+.walk-ceil {
+  top: 0;
+  transform: perspective(700px) rotateX(-62deg);
+  transform-origin: top;
+  background-color: #170C28;
+  -webkit-mask-image: linear-gradient(#000 60%, transparent);
+  mask-image: linear-gradient(#000 60%, transparent);
+}
+
+/* 벽에 걸린 작품 한 점 */
+.walk-piece {
+  position: absolute;
+  left: 0; top: 0;
+  width: 18rem;
+  margin-left: -9rem;
+  transform:
+    translate3d(var(--ox, 0px), -50%, var(--oz, 0px))
+    rotateY(var(--ory, 0deg));
+  transform-style: preserve-3d;
+  transition: opacity 0.45s ease, filter 0.45s ease;
+  cursor: pointer;
+}
+.walk-end { transition: opacity 0.45s ease; }
+
+/* 액자 — 나무틀은 왼쪽 위가 밝고, 그 안쪽으로 그림이 파여 있다 */
+.walk-frame {
+  padding: 0.7rem;
+  border: 0.55rem solid;
+  border-color: #9E7A2C #4B380F #4B380F #9E7A2C;
+  border-radius: 0.1rem;
+  background: #0B0616;
+  box-shadow:
+    0 2rem 4rem rgba(0, 0, 0, 0.85),
+    0 0 0 0.07rem rgba(0, 0, 0, 0.75),
+    inset 0.14rem 0.14rem 0.5rem rgba(0, 0, 0, 0.95),
+    inset 0 0 2rem rgba(0, 0, 0, 0.9);
+}
+.walk-frame .media-slot {
+  margin: 0;
+  border: 1px solid rgba(255, 216, 77, 0.16);
+  border-radius: 0;
+  aspect-ratio: 4 / 3;
+  box-shadow: inset 0.1rem 0.1rem 0.4rem rgba(0, 0, 0, 0.8);
+}
+
+/* 작품 아래 설명 명판 — 벽에서 떠 있다 */
+.walk-plaque {
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(255, 216, 77, 0.35);
+  background: linear-gradient(150deg, rgba(92, 53, 128, 0.8), rgba(14, 7, 26, 0.92));
+  box-shadow: var(--lift-2), var(--bevel-up);
+  text-align: center;
+}
+.walk-plaque .meta {
+  margin: 0;
+  color: var(--c-gold);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+}
+.walk-plaque h3 {
+  margin: 0.22rem 0 0.3rem;
+  font-family: var(--f-display);
+  font-size: 0.98rem;
+  font-weight: 400;
+  word-break: keep-all;
+}
+.walk-plaque p {
+  margin: 0 0 0.35rem;
+  color: var(--c-muted);
+  font-size: 0.74rem;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+.walk-plaque p:last-child { margin-bottom: 0; }
+
+/* 지금 서 있는 자리의 작품에만 조명이 떨어진다 */
+.walk-piece:not(.is-here) .walk-plaque { opacity: 0; }
+.walk-piece.is-here .walk-frame {
+  box-shadow:
+    0 2rem 4rem rgba(0, 0, 0, 0.85),
+    0 0 3.5rem rgba(255, 216, 77, 0.22),
+    0 0 0 0.07rem rgba(0, 0, 0, 0.75),
+    inset 0.14rem 0.14rem 0.5rem rgba(0, 0, 0, 0.95);
+}
+.walk-spot {
+  position: absolute;
+  z-index: 0;
+  left: 50%; top: -3rem;
+  width: 22rem; height: 22rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 216, 77, 0.16), transparent 66%);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.walk-piece.is-here .walk-spot { opacity: 1; }
+
+/* 복도 끝 벽 */
+.walk-end {
+  position: absolute;
+  left: 0; top: 0;
+  width: 26rem;
+  margin-left: -13rem;
+  transform: translate3d(0, -50%, var(--oz, 0px));
+  padding: 2rem 1.5rem;
+  border: 1px solid rgba(255, 216, 77, 0.2);
+  background: radial-gradient(circle at 50% 34%, #3A2360, #120722 76%);
+  box-shadow: 0 0 5rem #000, inset 0 0 4rem rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+.walk-end h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--f-display);
+  font-size: 1.2rem;
+  font-weight: 400;
+}
+.walk-end p { margin: 0; color: var(--c-muted); font-size: 0.8rem; word-break: keep-all; }
+
+/* 걷기 조작부 */
+.walk-hud {
+  position: absolute;
+  z-index: 30;
+  left: 50%; bottom: clamp(1rem, 4vh, 2.4rem);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 216, 77, 0.2);
+  border-radius: 2rem;
+  background: linear-gradient(180deg, rgba(32, 18, 54, 0.82), rgba(8, 4, 15, 0.82));
+  box-shadow: var(--lift-2), var(--bevel-up);
+  backdrop-filter: blur(8px);
+  font-family: var(--f-ui);
+}
+/* 둥근 단추 — 솟아 있다가 누르면 안으로 들어간다 */
+.walk-step {
+  display: grid;
+  place-items: center;
+  width: 2.3rem; height: 2.3rem;
+  border: 1px solid rgba(255, 216, 77, 0.35);
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 216, 77, 0.12), rgba(255, 216, 77, 0.02));
+  box-shadow:
+    0 0.2rem 0.45rem rgba(0, 0, 0, 0.65),
+    inset 0 0.07rem 0 rgba(255, 244, 189, 0.28),
+    inset 0 -0.07rem 0 rgba(0, 0, 0, 0.55);
+  color: var(--c-gold);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease, box-shadow 0.15s ease,
+              transform 0.12s ease;
+}
+.walk-step:hover:not([disabled]) {
+  background: rgba(255, 216, 77, 0.2);
+  transform: translateY(-0.08rem);
+  box-shadow:
+    0 0.35rem 0.7rem rgba(0, 0, 0, 0.7),
+    inset 0 0.07rem 0 rgba(255, 244, 189, 0.35);
+}
+.walk-step:active:not([disabled]) {
+  transform: translateY(0.06rem);
+  box-shadow: inset 0 0.1rem 0.3rem rgba(0, 0, 0, 0.85);
+}
+.walk-step[disabled] { opacity: 0.25; cursor: default; box-shadow: none; }
+.walk-count {
+  min-width: 4.6rem;
+  color: var(--c-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 복도 위에 뜬 제목 — 걷는 걸 방해하지 않게 얇게 */
+.walk-title {
+  position: absolute;
+  z-index: 30;
+  left: 50%; top: clamp(3.4rem, 8vh, 5rem);
+  width: min(90vw, 34rem);
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+.walk-title h1 {
+  margin: 0.35rem 0 0;
+  font-family: var(--f-display);
+  font-size: clamp(1.2rem, 3.4vw, 1.9rem);
+  font-weight: 400;
+}
+.walk-notice {
+  margin: 0.7rem auto 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed rgba(255, 216, 77, 0.32);
+  border-radius: var(--radius);
+  color: var(--c-muted);
+  font-size: 0.7rem;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.walk-hint {
+  position: absolute;
+  z-index: 30;
+  left: 50%; bottom: calc(clamp(1rem, 4vh, 2.4rem) + 3.4rem);
+  transform: translateX(-50%);
+  margin: 0;
+  width: max-content;
+  max-width: 88vw;
+  color: var(--c-faint);
+  font-family: var(--f-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .walk-piece { width: 12.5rem; margin-left: -6.25rem; }
+  .walk-end { width: 17rem; margin-left: -8.5rem; padding: 1.4rem 1rem; }
+  .walk-spot { width: 15rem; height: 15rem; }
+  .walk-hint { font-size: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .walk-track,
+  .walk-floor,
+  .walk-ceil { transition: none; }
+  .walk.is-stepping .walk-space { animation: none; }
+}
+
+/* -------------------------------------------------------------------------
+   6. 금고 — 비밀 공간. 실로 묶인 봉투가 놓인 자리.
+      봉투를 누르면 화면 전체가 편지를 여는 의식으로 넘어간다(secret-letter.css).
+   ------------------------------------------------------------------------- */
+
+.vault {
+  display: grid;
+  gap: var(--sp-3);
+  width: min(100%, 34rem);
+  margin: 0 auto;
+}
+
+/* 봉투 한 통 — 카드 전체가 누를 수 있는 자리다 */
+.envelope {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 1.05rem 1.2rem;
+  border: 1px solid rgba(217, 166, 255, 0.28);
+  border-radius: 0.25rem;
+  background: linear-gradient(158deg, #332054, #241540 55%, #120826);
+  box-shadow:
+    var(--lift-2),
+    inset 0 0.06rem 0 rgba(255, 244, 189, 0.1),
+    inset 0 -0.1rem 0.4rem rgba(0, 0, 0, 0.55);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.envelope:hover,
+.envelope:focus-visible {
+  border-color: rgba(217, 166, 255, 0.6);
+  box-shadow:
+    var(--lift-3),
+    0 0 1.6rem rgba(217, 166, 255, 0.16),
+    inset 0 0.06rem 0 rgba(255, 244, 189, 0.16);
+  transform: translateY(-0.22rem);
+}
+.envelope:active { transform: translateY(-0.02rem); box-shadow: var(--lift-1); }
+
+/* 작은 봉투 그림 — 앞으로 접어 넘긴 세 자락 위에, 덮개와 십자로 감은 실.
+   카드 위에 놓인 물건처럼 보이도록 살짝 눕혀 둔다. */
+.envelope-body {
+  position: relative;
+  flex: 0 0 auto;
+  width: 4.6rem;
+  height: 2.9rem;
+  transform: perspective(280px) rotateX(15deg) rotate(-2deg);
+  transform-origin: center bottom;
+  border: 1px solid rgba(217, 166, 255, 0.34);
+  border-radius: 0.12rem;
+  background: linear-gradient(158deg, #4A2F73, #1D1035);
+  box-shadow:
+    inset 0.05rem 0.05rem 0 rgba(255, 244, 189, 0.13),
+    inset -0.05rem -0.05rem 0 rgba(0, 0, 0, 0.55),
+    0 0.5rem 0.9rem rgba(0, 0, 0, 0.65);
+  transition: transform 0.3s var(--ease-camera);
+}
+.envelope:hover .envelope-body,
+.envelope:focus-visible .envelope-body { transform: perspective(280px) rotateX(5deg) rotate(0deg); }
+
+/* 앞으로 접어 넘긴 자락 셋. 서로 다른 각도로 빛을 받는다. */
+.envelope-fold {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 -0.5px 0 rgba(217, 166, 255, 0.22));
+}
+.envelope-fold--l {
+  clip-path: polygon(0 0, 52% 50%, 0 100%);
+  background: linear-gradient(100deg, #56377E, #2C1A4B);
+}
+.envelope-fold--r {
+  clip-path: polygon(100% 0, 48% 50%, 100% 100%);
+  background: linear-gradient(260deg, #3C2460, #1B0F33);
+}
+.envelope-fold--b {
+  clip-path: polygon(0 100%, 50% 45%, 100% 100%);
+  background: linear-gradient(0deg, #4A2E70, #251442);
+}
+
+/* 덮개 — 자락들 위에 덮여 있다 */
+.envelope-flap {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 62%;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(180deg, #634090 0%, #40246B 62%, #2A1749 100%);
+  filter: drop-shadow(0 0.14rem 0.2rem rgba(0, 0, 0, 0.6));
+}
+
+/* 봉투를 묶은 실 — 위쪽에 빛, 아래쪽에 그늘을 붙여 한 가닥의 굵기를 만든다 */
+.envelope-tie {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right,
+      transparent calc(50% - 1px), rgba(255, 245, 205, 0.9) calc(50% - 1px),
+      rgba(214, 191, 138, 0.85) calc(50% + 0.4px), rgba(0, 0, 0, 0.55) calc(50% + 0.4px),
+      transparent calc(50% + 1.4px)),
+    linear-gradient(to bottom,
+      transparent calc(50% - 1px), rgba(255, 245, 205, 0.9) calc(50% - 1px),
+      rgba(214, 191, 138, 0.85) calc(50% + 0.4px), rgba(0, 0, 0, 0.55) calc(50% + 0.4px),
+      transparent calc(50% + 1.4px));
+  transition: opacity 0.25s ease;
+}
+
+/* 매듭 — 실이 겹친 자리라 봉투에서 가장 도드라진다 */
+.envelope-knot {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 0.58rem; height: 0.58rem;
+  margin: -0.29rem 0 0 -0.29rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 29%, #FFF6D4 0%, #F0DCAE 30%, #A9873F 74%, #5F4A1B 100%);
+  box-shadow:
+    0 0.18rem 0.34rem rgba(0, 0, 0, 0.7),
+    inset -0.05rem -0.05rem 0.1rem rgba(0, 0, 0, 0.45);
+  transition: transform 0.3s var(--ease-camera);
+}
+.envelope:hover .envelope-knot,
+.envelope:focus-visible .envelope-knot { transform: rotate(28deg) scale(1.18); }
+
+.envelope-text {
+  display: grid;
+  gap: 0.24rem;
+  min-width: 0;
+}
+
+.envelope-title {
+  font-family: var(--f-display);
+  font-size: 1.06rem;
+  font-weight: 400;
+  word-break: keep-all;
+}
+
+.envelope-hint {
+  color: var(--c-faint);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 480px) {
+  .envelope { padding: 0.9rem 1rem; gap: var(--sp-2); }
+  .envelope-body { width: 3.6rem; height: 2.3rem; }
+  .envelope-title { font-size: 0.98rem; }
+}
+
+/* -------------------------------------------------------------------------
+   방 안에서 쓰는 공용 조각
+   ------------------------------------------------------------------------- */
+
+.room-notice {
+  margin: 0 0 var(--sp-3);
+  padding: 0.65rem 0.85rem;
+  border: 1px dashed rgba(255, 216, 77, 0.32);
+  border-radius: var(--radius);
+  color: var(--c-muted);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.room-empty {
+  padding: var(--sp-4);
+  border: 1px dashed rgba(199, 184, 219, 0.2);
+  border-radius: var(--radius);
+  color: var(--c-faint);
+  font-size: 0.82rem;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.room-actions { display: flex; justify-content: center; gap: var(--sp-2); margin-top: var(--sp-3); }

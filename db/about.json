@@ -1,0 +1,30 @@
+[
+  {
+    "id": "a1",
+    "category": "좋아하는 것",
+    "label": "[항목]",
+    "body": "[내용]",
+    "position": 1
+  },
+  {
+    "id": "a2",
+    "category": "좋아하는 것",
+    "label": "[항목]",
+    "body": "[내용]",
+    "position": 2
+  },
+  {
+    "id": "a3",
+    "category": "습관",
+    "label": "[항목]",
+    "body": "[내용]",
+    "position": 3
+  },
+  {
+    "id": "a4",
+    "category": "내가 좋아하는 모습",
+    "label": "[항목]",
+    "body": "[내용]",
+    "position": 4
+  }
+]

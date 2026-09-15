@@ -1,0 +1,389 @@
+/* =========================================================================
+   room-shell.css — 문 안쪽의 방 한 칸
+
+   정면 벽(.room-back)과 내용(.room-scroll)은 완전히 같은 상자를 쓴다.
+   그래야 글이 언제나 벽면 안에 정확히 얹힌다.
+   그 바깥 여백에 좌우 벽·바닥·천장이 드러나며 "방 안"이 완성된다.
+   ========================================================================= */
+
+.room {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: var(--f-ui);
+  background: radial-gradient(circle at 50% 40%, var(--room-tint, #3E2360) 0, #170C29 34%, var(--c-void) 76%);
+}
+
+/* 방마다 다른 벽 색과 강조색 */
+.room--story  { --room-tint: #43265F; --room-accent: #FFD84D; }
+.room--about  { --room-tint: #3A2A63; --room-accent: #FFC96B; }
+.room--say    { --room-tint: #4B2A63; --room-accent: #FFE07A; }
+.room--future { --room-tint: #2E1E4E; --room-accent: #FF8A6B; }
+.room--places { --room-tint: #241A44; --room-accent: #FFD84D; }
+.room--secret { --room-tint: #1B1030; --room-accent: #D9A6FF; }
+
+/* 정면 벽은 바닥에서 조금 띄워 세운다 — 벽 앞의 바닥이 보여야 방이 된다 */
+.room-back,
+.room-scroll {
+  position: absolute;
+  top: clamp(3.4rem, 8vh, 5rem);
+  bottom: clamp(2.4rem, 8vh, 5rem);
+  left: 50%;
+  width: min(94vw, 60rem);
+  transform: translateX(-50%);
+}
+
+/* ---- 정면 벽 ---- */
+.room-back {
+  z-index: 3;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.016) 1px, transparent 1px),
+    radial-gradient(circle at 50% 30%, var(--room-tint, #3E2360), #150A26 74%);
+  background-size: 5rem 100%, 100% 3.8rem, 100% 100%;
+  border: 1px solid rgba(255, 225, 91, 0.16);
+  box-shadow: 0 0 7rem #000, inset 0 0 7rem rgba(0, 0, 0, 0.72);
+  pointer-events: none;
+}
+.room-back::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 0.8rem;
+  border-top: 1px solid rgba(255, 216, 77, 0.18);
+  background: linear-gradient(180deg, rgba(255, 216, 77, 0.13), rgba(0, 0, 0, 0.75));
+}
+
+/* ---- 벽에 얹힌 내용 ---- */
+.room-scroll {
+  z-index: 8;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1.5rem, 4vw, 2.6rem) clamp(1rem, 3.5vw, 2.4rem) clamp(3.5rem, 7vw, 5rem);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 216, 77, 0.3) transparent;
+}
+.room-scroll::-webkit-scrollbar { width: 6px; }
+.room-scroll::-webkit-scrollbar-thumb { background: rgba(255, 216, 77, 0.28); border-radius: 3px; }
+
+/* 복도처럼 화면을 꽉 쓰는 방 — 벽면 상자를 걷어낸다 */
+.room--bleed .room-back { display: none; }
+.room--bleed .room-scroll {
+  top: 0; bottom: 0; left: 0;
+  width: 100%;
+  transform: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.room-head { margin-bottom: var(--sp-4); text-align: center; }
+.room-head h1 {
+  margin: 0.45rem 0 0.5rem;
+  font-family: var(--f-display);
+  font-size: clamp(1.45rem, 4vw, 2.3rem);
+  font-weight: 400;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+.room-head > p {
+  max-width: 38rem;
+  margin: 0 auto;
+  color: var(--c-muted);
+  font-size: 0.88rem;
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+/* -------------------------------------------------------------------------
+   천장에 걸린 메모지
+   ------------------------------------------------------------------------- */
+
+.ceiling-notes {
+  position: absolute;
+  z-index: 20;
+  top: 0; left: 0; right: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ceiling-note {
+  position: absolute;
+  top: 0;
+  left: var(--nx, 50%);
+  width: clamp(4.4rem, 7.5vw, 6.2rem);
+  transform-origin: top center;
+  animation: note-sway var(--nspeed, 6s) ease-in-out infinite alternate;
+  animation-delay: var(--ndelay, 0s);
+  pointer-events: auto;
+}
+
+/* 매다는 자리는 CSS가 정한다 — 화면이 좁아지면 그대로 다시 배치할 수 있게 */
+/* 실 길이(--ncord)는 최소 3.4rem — 그보다 짧으면 상단 HUD 뒤로 들어간다 */
+.ceiling-note:nth-child(1) { --nx: 7%;  --ncord: 3.6rem; --nrot: -3deg;  --nspeed: 6.2s; --ndelay: 0s; }
+.ceiling-note:nth-child(2) { --nx: 79%; --ncord: 5rem;   --nrot: 2.5deg; --nspeed: 7.4s; --ndelay: -1.8s; }
+.ceiling-note:nth-child(3) { --nx: 20%; --ncord: 5.8rem; --nrot: 2deg;   --nspeed: 5.6s; --ndelay: -3.1s; }
+.ceiling-note:nth-child(4) { --nx: 65%; --ncord: 4.2rem; --nrot: -2deg;  --nspeed: 8.1s; --ndelay: -0.9s; }
+
+/* 매단 실 */
+.ceiling-note::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 0;
+  width: 1px; height: var(--ncord, 3rem);
+  background: linear-gradient(rgba(255, 244, 189, 0.55), rgba(255, 244, 189, 0.18));
+}
+/* 집게 — 놋쇠 조각 하나. 위쪽에 빛, 가운데에 이음선, 아래에 그림자. */
+.ceiling-note::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: calc(var(--ncord, 3rem) - 0.28rem);
+  width: 0.86rem; height: 0.42rem;
+  transform: translateX(-50%);
+  border-radius: 0.1rem;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0 46%, transparent 46% 54%, rgba(0, 0, 0, 0.35) 54%),
+    linear-gradient(180deg, #FFF0C4 0%, #D8BC72 40%, #8E7327 100%);
+  box-shadow:
+    0 0.2rem 0.42rem rgba(0, 0, 0, 0.7),
+    inset 0 0.05rem 0 rgba(255, 255, 255, 0.55);
+}
+
+.ceiling-note-paper {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--ncord, 3rem) + 0.1rem);
+  width: 100%;
+  padding: 0.5rem 0.45rem 0.55rem;
+  transform: translateX(-50%) rotate(var(--nrot, 0deg));
+  border-radius: 0.1rem;
+  background: linear-gradient(165deg, #FFF6D2, #E9DCAE);
+  color: #3B2A14;
+  font-family: var(--f-hand);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  text-align: center;
+  word-break: keep-all;
+  box-shadow:
+    0.2rem 0.22rem 0 -0.05rem rgba(213, 197, 158, 0.55),
+    0 0.7rem 1.4rem rgba(0, 0, 0, 0.6),
+    inset 0 0.07rem 0 rgba(255, 255, 255, 0.8),
+    inset 0 -0.07rem 0 rgba(120, 96, 46, 0.24);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.ceiling-note:hover .ceiling-note-paper {
+  transform: translateX(-50%) rotate(0deg) scale(1.07);
+  box-shadow:
+    0.2rem 0.22rem 0 -0.05rem rgba(213, 197, 158, 0.55),
+    0 1.2rem 2.2rem rgba(0, 0, 0, 0.7),
+    0 0 1.4rem rgba(255, 216, 77, 0.3),
+    inset 0 0.07rem 0 rgba(255, 255, 255, 0.85);
+}
+
+@keyframes note-sway {
+  from { transform: rotate(-2.4deg); }
+  to   { transform: rotate(2.4deg); }
+}
+
+/* -------------------------------------------------------------------------
+   벽에 걸린 물건들 — 정면 벽 바깥 여백에만 나온다
+   ------------------------------------------------------------------------- */
+
+/* 정면 벽의 절반 너비 — 소품을 벽 바깥 여백 정중앙에 두기 위한 기준 */
+.wall-props {
+  --back-half: min(47vw, 30rem);
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.wall-prop {
+  position: absolute;
+  top: var(--wy, 30%);
+  transform: rotate(var(--wrot, 0deg));
+}
+/* 왼쪽 벽에 걸린 것: 정면 벽 왼쪽 모서리에서 더 왼쪽으로 */
+.wall-prop--l {
+  right: calc(50% + var(--back-half) + 1.2rem);
+  transform-origin: right top;
+}
+/* 오른쪽 벽에 걸린 것 */
+.wall-prop--r {
+  left: calc(50% + var(--back-half) + 1.2rem);
+  transform-origin: left top;
+}
+
+.wall-prop:nth-child(1) { --wy: 22%; --wrot: -1.8deg; }
+.wall-prop:nth-child(2) { --wy: 27%; --wrot: 1.6deg; }
+.wall-prop:nth-child(3) { --wy: 52%; --wrot: 1deg; }
+.wall-prop:nth-child(4) { --wy: 58%; --wrot: -1.2deg; }
+.wall-prop:nth-child(5) { --wy: 74%; --wrot: 0deg; }
+.wall-prop:nth-child(6) { --wy: 78%; --wrot: 0deg; }
+
+/* 액자 — 테두리는 왼쪽 위가 밝은 나무, 안쪽은 유리 아래로 파여 있다 */
+.wall-frame-art {
+  width: var(--fw, 6.2rem);
+  aspect-ratio: 4 / 5;
+  padding: 0.35rem;
+  border: 0.3rem solid;
+  border-color: #A8842F #5A4313 #5A4313 #A8842F;
+  background: linear-gradient(150deg, #2A1742, #120722);
+  box-shadow:
+    var(--lift-2),
+    0 0 0 0.06rem rgba(0, 0, 0, 0.7),
+    inset 0.1rem 0.1rem 0.4rem rgba(0, 0, 0, 0.9);
+}
+.wall-frame-art span {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border: 1px solid rgba(255, 216, 77, 0.18);
+  /* 유리에 비스듬히 걸린 빛 */
+  background: linear-gradient(122deg, transparent 42%, rgba(255, 255, 255, 0.05) 44% 52%, transparent 54%);
+  box-shadow: inset 0.08rem 0.08rem 0.3rem rgba(0, 0, 0, 0.8);
+  color: rgba(255, 216, 77, 0.3);
+  font-size: 1.05rem;
+}
+
+/* 선반 — 널의 앞면(::after)이 아래로 보이면 두께가 생긴다 */
+.wall-shelf {
+  position: relative;
+  width: var(--fw, 6.6rem);
+  height: 0.32rem;
+  border-radius: 0.1rem 0.1rem 0 0;
+  background: linear-gradient(180deg, #C29A45 0%, #6B5220 55%, #4A380F 100%);
+  box-shadow: 0 0.55rem 1.3rem rgba(0, 0, 0, 0.75);
+}
+.wall-shelf::after {
+  content: "";
+  position: absolute;
+  left: 0.1rem; right: 0.1rem; top: 100%;
+  height: 0.2rem;
+  border-radius: 0 0 0.08rem 0.08rem;
+  background: linear-gradient(180deg, #3B2C0C, #1B1405);
+}
+.wall-shelf > span {
+  position: absolute;
+  left: 50%; bottom: 0.32rem;
+  transform: translateX(-50%);
+  color: rgba(255, 216, 77, 0.42);
+  font-size: 0.8rem;
+  letter-spacing: 0.28em;
+  white-space: nowrap;
+}
+
+/* 벽시계 — 놋쇠 테 안으로 문자판이 파여 있고, 유리에 빛이 스친다 */
+.wall-clock {
+  display: grid;
+  place-items: center;
+  width: 3rem; aspect-ratio: 1;
+  border: 0.15rem solid;
+  border-color: #D8B45E #6E5417 #6E5417 #D8B45E;
+  border-radius: 50%;
+  background:
+    linear-gradient(128deg, transparent 40%, rgba(255, 255, 255, 0.07) 43% 50%, transparent 53%),
+    radial-gradient(circle at 40% 34%, #3B2657, #100620);
+  color: rgba(255, 216, 77, 0.5);
+  font-size: 0.85rem;
+  box-shadow:
+    var(--lift-2),
+    inset 0.1rem 0.1rem 0.35rem rgba(0, 0, 0, 0.85);
+}
+
+/* 벽에 붙은 스위치 — 판은 벽에서 나오고, 레버는 판에서 다시 나온다 */
+.wall-switch {
+  width: 1.5rem; height: 2.1rem;
+  border: 1px solid rgba(255, 216, 77, 0.28);
+  border-radius: 0.15rem;
+  background: linear-gradient(160deg, #3D2759, #150A26);
+  box-shadow:
+    var(--lift-1),
+    inset 0.05rem 0.05rem 0 rgba(255, 244, 189, 0.16),
+    inset -0.05rem -0.05rem 0 rgba(0, 0, 0, 0.55);
+}
+.wall-switch::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 30%;
+  width: 0.5rem; height: 0.75rem;
+  transform: translateX(-50%);
+  border-radius: 0.08rem;
+  background: linear-gradient(180deg, #FFF0C4, #C9A94D 45%, #6E5417);
+  box-shadow: 0 0.16rem 0.3rem rgba(0, 0, 0, 0.75);
+}
+
+/* 벽 바깥 여백이 확보되는 화면에서만 소품을 건다 */
+@media (max-width: 1279px) {
+  .wall-props { display: none; }
+}
+
+/* 좁은 화면 — 메모는 두 장만, 제목을 가리지 않도록 가장자리로 */
+@media (max-width: 860px) {
+  .ceiling-note:nth-child(n + 3) { display: none; }
+  .ceiling-note { width: 4.2rem; }
+  .ceiling-note-paper { font-size: 0.76rem; }
+  .ceiling-note:nth-child(1) { --nx: 2%;  --ncord: 3.4rem; }
+  .ceiling-note:nth-child(2) { --nx: 76%; --ncord: 4.6rem; }
+}
+@media (max-height: 560px) {
+  .ceiling-notes { display: none; }
+}
+
+/* -------------------------------------------------------------------------
+   방을 나가는 문
+   ------------------------------------------------------------------------- */
+
+.room-exit {
+  position: absolute;
+  z-index: 40;
+  right: clamp(0.6rem, 2.5vw, 1.6rem);
+  bottom: clamp(0.6rem, 2.5vw, 1.6rem);
+  width: clamp(3.1rem, 4.6vw, 4rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+}
+/* 작은 문이지만 뼈대는 로비의 문과 같다(door3d.css).
+   깊이만 문 크기에 맞춰 줄인다. */
+.room-exit-frame {
+  display: block;
+  aspect-ratio: 5 / 9;
+  --rv: 0.95rem;
+  --th: 0.16rem;
+  perspective: 420px;
+  border: 0.3rem solid;
+  border-color: #543365 #2A1540 #2A1540 #543365;
+  border-bottom: 0;
+  box-shadow:
+    0 0 0 0.07rem #C9A93A,
+    0 0 0 0.2rem rgba(0, 0, 0, 0.85),
+    0 0.7rem 1.8rem rgba(0, 0, 0, 0.82);
+}
+/* 문살까지 넣기에는 너무 작다 — 이 문의 앞면은 널판 하나로 둔다(.door3d-panels 없음) */
+.room-exit-arrow {
+  color: var(--c-gold);
+  font-size: 0.85rem;
+  text-shadow: 0 -0.04rem 0 rgba(0, 0, 0, 0.9), 0 0.05rem 0 rgba(255, 244, 189, 0.25);
+}
+.room-exit:hover .room-exit-leaf,
+.room-exit:focus-visible .room-exit-leaf { filter: brightness(1.3); }
+.room.is-leaving .room-exit-leaf { --open: -104deg; }
+.room.is-leaving .room-exit-glow::after { opacity: 1; }
+
+.room-exit small {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--c-faint);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+}
+.room-exit:hover small,
+.room-exit:focus-visible small { color: var(--c-gold); }
+
+@media (max-height: 560px) { .room-exit small { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ceiling-note { animation: none; }
+}

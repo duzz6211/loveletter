@@ -1,0 +1,56 @@
+/* =========================================================================
+   archive.css — 방 안에서 공통으로 쓰는 작은 조각들
+
+   아카이브가 문서에서 공간으로 바뀌면서 페이지 레이아웃(헤더·본문 폭·카드
+   그리드)은 rooms.css / room-shell.css / room-features.css 로 옮겨갔다.
+   여기에는 어느 방에서나 쓰는 버튼과 사진 자리만 남긴다.
+   ========================================================================= */
+
+.button {
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--c-gold);
+  border-radius: var(--radius);
+  background: rgba(255, 216, 77, 0.1);
+  color: var(--c-ink);
+  font-family: var(--f-ui);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.button:hover:not([disabled]) {
+  background: rgba(255, 216, 77, 0.2);
+  box-shadow: 0 0 1.2rem rgba(255, 216, 77, 0.22);
+}
+.button[disabled] { opacity: 0.45; cursor: default; }
+
+.button-quiet {
+  border-color: rgba(199, 184, 219, 0.35);
+  background: transparent;
+  color: var(--c-muted);
+}
+.button-quiet:hover:not([disabled]) {
+  border-color: var(--c-gold);
+  color: var(--c-gold);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 비공개 사진·영상이 들어가는 자리 */
+.media-slot {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 0.7rem;
+  border: 1px dashed rgba(199, 184, 219, 0.28);
+  border-radius: 0.25rem;
+  background: rgba(8, 4, 15, 0.5);
+  color: var(--c-faint);
+  font-size: 0.74rem;
+  text-align: center;
+  overflow: hidden;
+}
+.media-slot img,
+.media-slot video { width: 100%; height: 100%; object-fit: cover; }
+.media-slot:last-child { margin-bottom: 0; }
+

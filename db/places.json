@@ -1,0 +1,44 @@
+[
+  {
+    "id": "p1",
+    "name": "[첫 번째 장소]",
+    "visited_on": "",
+    "note": "[이 장소의 기억]",
+    "photo_path": null
+  },
+  {
+    "id": "p2",
+    "name": "[두 번째 장소]",
+    "visited_on": "",
+    "note": "[이 장소의 기억]",
+    "photo_path": null
+  },
+  {
+    "id": "p3",
+    "name": "[세 번째 장소]",
+    "visited_on": "",
+    "note": "[이 장소의 기억]",
+    "photo_path": null
+  },
+  {
+    "id": "p4",
+    "name": "[네 번째 장소]",
+    "visited_on": "",
+    "note": "[이 장소의 기억]",
+    "photo_path": null
+  },
+  {
+    "id": "p5",
+    "name": "[다섯 번째 장소]",
+    "visited_on": "",
+    "note": "[이 장소의 기억]",
+    "photo_path": null
+  },
+  {
+    "id": "p6",
+    "name": "[여섯 번째 장소]",
+    "visited_on": "",
+    "note": "[이 장소의 기억]",
+    "photo_path": null
+  }
+]

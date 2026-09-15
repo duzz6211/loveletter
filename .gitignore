@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+
+# 개인 작업 메모 (배포 순서·계정 정보 등)
+workflow.md

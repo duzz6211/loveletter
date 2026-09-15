@@ -1,0 +1,160 @@
+/* =========================================================================
+   tokens.css — 색상 · 타이포 · 여백 토큰과 전역 리셋
+   보라(공간) / 노랑(상호작용·진행) 두 축으로만 운용한다.
+   ========================================================================= */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- 공간(보라) ---- */
+  --c-void:        #08040F;  /* 최외곽 배경 */
+  --c-deep:        #140924;  /* 깊은 보라 */
+  --c-room:        #46296C;  /* 공간 중심 보라 */
+  --c-accent:      #7B42D1;  /* 강조 보라 */
+  --c-room-edge:   #1D1030;
+  --c-room-lit:    #392058;
+  --c-stone:       #2A1642;
+
+  /* ---- 상호작용(노랑) ---- */
+  --c-gold:        #FFD84D;  /* 기본 노랑 */
+  --c-gold-glow:   #FFE77A;  /* 밝은 노란빛 */
+  --c-gold-dim:    #B79A32;  /* 금속 테두리 */
+
+  /* ---- 텍스트 ---- */
+  --c-ink:         #FFF4BD;  /* 본문 */
+  --c-muted:       #C7B8DB;  /* 보조 문구 */
+  --c-faint:       #8C7BA6;  /* 비활성 */
+
+  /* ---- 상태 ---- */
+  --c-warn:        #E9B7C6;
+
+  /* ---- 타이포 ---- */
+  /* 화면 글씨는 전부 Pretendard 하나로 간다. 제목과 본문은 서체가 아니라
+     굵기·크기로 구분한다. (index.html 이 CDN에서 불러온다) */
+  --f-display: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+               "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --f-ui: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+          "Malgun Gothic", "Noto Sans KR", sans-serif;
+  /* 편지·손으로 적은 쪽지에만 쓰는 손글씨. 작으면 안 읽히므로 크게 쓴다. */
+  --f-hand: "Nanum Pen Script", "Gaegu", var(--f-display);
+
+  --fs-kicker: 0.66rem;
+  --ls-kicker: 0.24em;
+
+  /* ---- 리듬 ---- */
+  --sp-1: 0.35rem;
+  --sp-2: 0.65rem;
+  --sp-3: 1rem;
+  --sp-4: 1.6rem;
+  --sp-5: 2.4rem;
+  --sp-6: 3.6rem;
+
+  --radius: 0.2rem;
+  --line: 1px solid rgba(255, 216, 77, 0.22);
+
+  /* ---- 입체 ----
+     빛은 언제나 왼쪽 위에서 온다. 위/왼쪽 모서리는 밝고, 아래/오른쪽은 어둡다.
+     --d-* 는 실제 깊이(translateZ)로 쓰는 길이,
+     --bevel-* 는 면에 얹는 모서리, --lift-* 는 바닥에 떨어지는 그림자다. */
+  --d-reveal: 2.6rem;    /* 문이 뚫린 벽의 두께 = 문틀 안쪽 깊이 */
+  --d-leaf:   0.5rem;    /* 문짝 두께 */
+
+  --bevel-up:  inset 0.07rem 0.07rem 0 rgba(255, 244, 189, 0.16),
+               inset -0.07rem -0.07rem 0 rgba(0, 0, 0, 0.55);
+  --bevel-in:  inset 0.07rem 0.07rem 0.22rem rgba(0, 0, 0, 0.8),
+               inset -0.07rem -0.07rem 0 rgba(255, 244, 189, 0.09);
+  --lift-1: 0 0.35rem 0.8rem rgba(0, 0, 0, 0.5);
+  --lift-2: 0 0.9rem 2rem rgba(0, 0, 0, 0.6);
+  --lift-3: 0 1.8rem 3.6rem rgba(0, 0, 0, 0.72);
+
+  /* 종이를 여러 장 겹쳐 놓은 것처럼 보이게 하는 가장자리 */
+  --paper-stack: 0.28rem 0.3rem 0 -0.06rem rgba(226, 210, 174, 0.5),
+                 0.55rem 0.62rem 0 -0.14rem rgba(190, 173, 137, 0.34);
+
+  /* ---- 연출 타이밍 (JS의 TIMING과 동기화) ---- */
+  --t-camera: 0.95s;
+  --t-panel: 0.55s;
+  --t-door: 1.35s;
+  --t-enter: 1.1s;
+  --ease-camera: cubic-bezier(0.22, 0.75, 0.16, 1);
+  --ease-door: cubic-bezier(0.65, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;      /* 가로 스크롤 금지 */
+  max-width: 100%;
+}
+
+#root { min-height: 100vh; min-height: 100dvh; }
+
+body {
+  background: var(--c-void);
+  color: var(--c-ink);
+  font-family: var(--f-ui);
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+img, video { max-width: 100%; height: auto; }
+
+a { color: var(--c-gold); }
+a:hover { color: var(--c-gold-glow); }
+
+/* 포커스는 항상 노란 링으로 명확하게 */
+:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+.kicker {
+  margin: 0;
+  color: var(--c-gold);
+  font-family: var(--f-ui);
+  font-size: var(--fs-kicker);
+  letter-spacing: var(--ls-kicker);
+  text-transform: uppercase;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -------------------------------------------------------------------------
+   세션 확인 중 가림막.
+   RequireAuth 가 확인이 끝나기 전에는 보호 콘텐츠를 아예 마운트하지 않으므로,
+   이 화면은 "확인 중"이라는 사실만 알려주는 역할을 한다.
+   ------------------------------------------------------------------------- */
+.auth-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-void);
+  color: var(--c-muted);
+  font-size: var(--fs-kicker);
+  letter-spacing: var(--ls-kicker);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

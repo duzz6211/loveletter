@@ -1,0 +1,490 @@
+/* =========================================================================
+   rooms.css — 아카이브를 "방"으로 만드는 공간 레이어
+
+   maze.css 가 세운 어법을 그대로 이어받는다.
+     · 좌우 벽은 clip-path 로 원근을 만든다 (3D 변환보다 안정적이고 반응형)
+     · 바닥/천장은 rotateX 로 눕힌 격자
+     · 카메라는 .stage 하나만 translate+scale 한다
+   문을 열고 들어가면 방이 되고, 방 안에는 벽·천장에 걸린 물건들이 있다.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   0. 셸과 HUD — 방 화면은 문서 스크롤을 만들지 않는다.
+      각 방이 자기 안에서만 스크롤한다.
+   ------------------------------------------------------------------------- */
+
+.archive-shell {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--c-void);
+  color: var(--c-ink);
+}
+
+.room-hud {
+  position: absolute;
+  z-index: 70;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0.75rem clamp(0.75rem, 3vw, 2.4rem);
+  font-family: var(--f-ui);
+  background: linear-gradient(180deg, rgba(6, 3, 12, 0.9) 12%, rgba(6, 3, 12, 0));
+  pointer-events: none;
+}
+.room-hud > * { pointer-events: auto; }
+
+.room-hud .brand {
+  margin: 0;
+  color: var(--c-gold);
+  font-size: 0.66rem;
+  letter-spacing: 0.26em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.room-hud-here {
+  margin: 0 auto;
+  color: var(--c-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+
+.hud-button {
+  display: inline-block;
+  padding: 0.34rem 0.72rem;
+  border: 1px solid rgba(199, 184, 219, 0.32);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(38, 22, 62, 0.7), rgba(8, 4, 15, 0.6));
+  box-shadow: var(--lift-1), var(--bevel-up);
+  color: var(--c-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease,
+              transform 0.12s ease;
+}
+.hud-button:hover,
+.hud-button:focus-visible {
+  border-color: var(--c-gold);
+  color: var(--c-gold);
+  transform: translateY(-0.08rem);
+  box-shadow: var(--lift-2), var(--bevel-up);
+}
+.hud-button:active { transform: translateY(0.05rem); box-shadow: var(--bevel-in); }
+
+/* -------------------------------------------------------------------------
+   1. 공용 공간 부품 — 복도(로비)와 방이 함께 쓴다
+   ------------------------------------------------------------------------- */
+
+.space {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 1000px;
+  perspective-origin: 50% 46%;
+}
+
+/* 카메라. --cam-* 는 JS가 실제 좌표에서 계산해 넣는다. */
+.space-stage {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transform: translate(var(--cam-x, 0px), var(--cam-y, 0px)) scale(var(--cam-z, 1));
+  transition: transform var(--t-camera) var(--ease-camera),
+              filter var(--t-camera) var(--ease-camera),
+              opacity 0.55s ease;
+  will-change: transform;
+}
+
+/* 문을 통과해 막 들어선 순간 — 밝은 데서 눈이 적응하듯.
+   이 애니메이션은 .space 에 건다. .space-stage 의 transform 은 카메라 전용이라
+   여기서 건드리면 문을 빨리 눌렀을 때 카메라 이동이 덮여 튄다. */
+.space { animation: room-arrive 0.85s var(--ease-camera); }
+@keyframes room-arrive {
+  from { opacity: 0; transform: scale(1.12); filter: brightness(2.2) saturate(0.4); }
+  to   { opacity: 1; transform: scale(1);    filter: none; }
+}
+
+/* 다음 문으로 전진 */
+.is-leaving .space-stage {
+  transition: transform var(--t-enter) cubic-bezier(0.55, 0, 0.85, 0.35),
+              filter var(--t-enter) ease-in,
+              opacity var(--t-enter) ease-in;
+  filter: brightness(2.6) saturate(0.45);
+  opacity: 0;
+}
+
+.side-wall { position: absolute; top: 0; bottom: 0; width: 30%; z-index: 1; }
+.side-wall-l {
+  left: 0;
+  clip-path: polygon(0 0, 100% 17%, 100% 83%, 0 100%);
+  background: linear-gradient(90deg, #06020C, var(--c-room-edge) 66%, var(--c-room-lit));
+}
+.side-wall-r {
+  right: 0;
+  clip-path: polygon(0 17%, 100% 0, 100% 100%, 0 83%);
+  background: linear-gradient(270deg, #06020C, var(--c-room-edge) 66%, var(--c-room-lit));
+}
+
+/* 벽 아래 굽도리 — 방이라는 느낌을 만드는 가장 싼 디테일 */
+.side-wall::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2.4%;
+  background: linear-gradient(180deg, rgba(255, 216, 77, 0.13), rgba(0, 0, 0, 0.6));
+}
+
+/* 바닥·천장의 기울기와 높이는 좌우 벽 clip-path(21%/79%) 와 맞춰 두었다.
+   눕힌 면의 먼 쪽 끝이 화면 높이의 약 21% 지점에 닿아 벽과 만난다.
+   height 를 줄이거나 각도를 키우면 바닥이 화면 밖으로 밀려나 보이지 않는다. */
+.room-floor {
+  position: absolute;
+  z-index: 2;
+  left: -12%; right: -12%; bottom: 0;
+  height: 92%;
+  transform: perspective(700px) rotateX(62deg);
+  transform-origin: bottom;
+  background:
+    linear-gradient(rgba(226, 206, 160, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 206, 160, 0.13) 1px, transparent 1px),
+    linear-gradient(#3E2159, #0D0619);
+  background-size: 100% 4.2rem, 6.8rem 100%, 100% 100%;
+  -webkit-mask-image: linear-gradient(transparent, #000 60%);
+  mask-image: linear-gradient(transparent, #000 60%);
+}
+
+/* 바닥에 떨어진 조명 웅덩이 */
+.floor-pool {
+  position: absolute;
+  z-index: 3;
+  left: 50%; bottom: 4%;
+  width: min(52vw, 34rem); height: 12vh;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 216, 77, 0.16), transparent 68%);
+  filter: blur(0.6rem);
+  pointer-events: none;
+}
+
+.room-ceiling {
+  position: absolute;
+  z-index: 1;
+  top: 0; left: -12%; right: -12%;
+  height: 92%;
+  transform: perspective(700px) rotateX(-62deg);
+  transform-origin: top;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6rem, rgba(255, 225, 91, 0.09) 6.1rem 6.3rem),
+    linear-gradient(#1A0B2C, #0C0518);
+  -webkit-mask-image: linear-gradient(#000 60%, transparent);
+  mask-image: linear-gradient(#000 60%, transparent);
+}
+
+/* 천장에 매달린 전구 */
+.pendant {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  left: var(--px, 50%);
+  width: 0;
+  transform-origin: top center;
+  animation: pendant-sway 7.5s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.pendant::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0;
+  width: 1px; height: var(--cord, 5.5rem);
+  background: linear-gradient(rgba(255, 216, 77, 0.5), rgba(255, 216, 77, 0.18));
+}
+.pendant::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: var(--cord, 5.5rem);
+  width: 0.55rem; height: 0.55rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--c-gold-glow);
+  box-shadow: 0 0 1.2rem var(--c-gold), 0 0 4rem rgba(255, 216, 77, 0.4);
+}
+@keyframes pendant-sway {
+  from { transform: rotate(-1.6deg); }
+  to   { transform: rotate(1.6deg); }
+}
+
+/* 공간 전체 분위기 */
+/* 모서리 그늘. 구석의 나가는 문까지 뭉개지 않도록 얕게 둔다. */
+.space-haze {
+  position: absolute; z-index: 12; inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 9rem 1.2rem rgba(0, 0, 0, 0.85);
+}
+.space-flash {
+  position: absolute; z-index: 90; inset: 0;
+  pointer-events: none;
+  background: var(--c-gold-glow);
+  opacity: 0;
+}
+.space-flash.is-active { animation: passage 1.3s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .space-stage { animation: none; }
+  .pendant { animation: none; }
+}
+
+/* =========================================================================
+   2. 로비 — 여섯 개의 문이 늘어선 홀
+   ========================================================================= */
+
+.hall {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 42%, var(--c-room) 0, #1B1032 30%, var(--c-void) 74%);
+  font-family: var(--f-display);
+}
+
+.hall-title {
+  position: absolute;
+  z-index: 20;
+  left: 50%; top: clamp(3.6rem, 9vh, 6rem);
+  width: min(90vw, 40rem);
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+.hall-title h1 {
+  margin: 0.45rem 0 0.5rem;
+  font-size: clamp(1.5rem, 4.2vw, 2.6rem);
+  font-weight: 400;
+  word-break: keep-all;
+}
+.hall-title p {
+  margin: 0;
+  color: var(--c-muted);
+  font-family: var(--f-ui);
+  font-size: 0.84rem;
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
+/* 문 여섯 개 — 오목하게 파인 벽을 따라 둘러선다.
+   가운데 문이 가장 뒤(--dz)에 있고, 양 끝 문이 앞으로 나와 안쪽을 본다.
+   문마다 크기를 따로 주지는 않는다. 원근이 알아서 줄여 준다.
+
+   문의 "보이는 가장자리"는 문틀의 border-box 가 아니라, 그 바깥으로 두른
+   불투명한 테(--ring)까지다. 이 테는 box-shadow 라 자리를 차지하지 않으므로
+   gap 이 테 두 개보다 좁으면 이웃한 문 위로 그대로 올라탄다. 그래서 간격은
+   언제나 "테 두 개 + 숨 쉴 틈"으로 잡는다. */
+.hall-doors {
+  --ring: 1.18rem;
+  position: absolute;
+  z-index: 5;
+  left: 50%; top: 53%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: calc(var(--ring) * 2 + clamp(0.4rem, 1vw, 1rem));
+  width: min(96vw, 82rem);
+  transform: translate(-50%, -50%);
+  perspective: 1400px;
+  perspective-origin: 50% 44%;
+}
+
+.hall-door {
+  position: relative;
+  flex: 0 0 auto;
+  width: clamp(5.2rem, 10vw, 9.6rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transform: translateZ(var(--dz, 0px)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.45s var(--ease-camera), filter 0.35s ease, opacity 0.4s ease;
+}
+/* 다가서면 그 문만 한 걸음 앞으로 나와 정면으로 돌아선다 */
+.hall-door:hover,
+.hall-door:focus-visible {
+  transform: translateZ(calc(var(--dz, 0px) + 96px))
+             rotateY(calc(var(--ry, 0deg) * 0.3))
+             translateY(-0.4rem);
+}
+.hall-door:focus-visible { outline-offset: 0.5rem; }
+
+/* 문틀 — span 이므로 블록으로 세워야 aspect-ratio 가 먹는다.
+   벽의 두께(--rv)와 문짝의 두께는 door3d.css 가 세운다.
+   여기서는 벽 앞면에 붙은 몰딩만 그린다. */
+.hall-door-frame {
+  display: block;
+  aspect-ratio: 5 / 9;
+  --rv: clamp(1.7rem, 3.4vw, 3rem);      /* 벽 두께 */
+  --th: clamp(0.3rem, 0.6vw, 0.5rem);
+  border: 0.62rem solid;
+  border-color: #5C3870 #2A1640 #2A1640 #5C3870;   /* 빛은 왼쪽 위에서 */
+  border-bottom: 0;
+  box-shadow:
+    0 0 0 0.1rem #C9A93A,
+    0 0 0 calc(var(--ring) - 0.13rem) #1B0E2E,
+    0 0 0 var(--ring) rgba(0, 0, 0, 0.9),
+    0 1.4rem 2.8rem rgba(0, 0, 0, 0.9);
+}
+
+/* 열리는 문 너머의 빛 */
+.hall.is-opening .hall-door.is-open .hall-door-glow::after { opacity: 1; }
+
+.hall-door:hover .hall-door-face,
+.hall-door:focus-visible .hall-door-face { filter: brightness(1.2); }
+
+.hall-door-num {
+  position: absolute; top: 3.6%;
+  color: #FFE06A;
+  font-family: var(--f-ui);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0.06rem 0 rgba(0, 0, 0, 0.85);
+}
+/* 새김 — 위쪽에 그늘, 아래쪽에 빛을 두면 파인 것처럼 보인다 */
+.hall-door-mark {
+  font-size: clamp(1.2rem, 2.4vw, 2rem);
+  color: var(--c-gold);
+  text-shadow:
+    0 -0.05rem 0.02rem rgba(0, 0, 0, 0.9),
+    0 0.06rem 0.02rem rgba(255, 244, 189, 0.28),
+    0 0 1.3rem rgba(255, 216, 77, 0.55);
+}
+
+/* 손잡이 — 밑판 위에 구슬 하나가 앞으로 튀어나와 있다 */
+.hall-door-handle {
+  position: absolute; right: 10%; top: 56.5%;
+  width: 0.62rem; height: 0.62rem;
+  transform: translateZ(0.24rem);
+  transform-style: preserve-3d;
+  border-radius: 50%;
+  background: radial-gradient(circle at 33% 27%, #FFF8D6 0%, #FFD84D 34%, #A8801A 76%, #634B0E 100%);
+  box-shadow:
+    0 0.12rem 0.28rem rgba(0, 0, 0, 0.85),
+    0 0 0.9rem rgba(255, 216, 77, 0.55);
+}
+.hall-door-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1.15rem; height: 1.15rem;
+  transform: translate(-50%, -50%) translateZ(-0.18rem);
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #5A3B17, #1A1006);
+  box-shadow: 0 0.18rem 0.4rem rgba(0, 0, 0, 0.7);
+}
+
+/* 문에 붙은 명패 — 문짝보다 앞으로 나와 얹혀 있다 */
+.hall-plate {
+  position: absolute;
+  left: 50%; bottom: 20%;
+  width: 84%;
+  padding: 0.4rem 0.3rem;
+  transform: translateX(-50%) translateZ(0.18rem);
+  border: 1px solid #D0B23E;
+  outline: 1px solid rgba(255, 216, 77, 0.2);
+  outline-offset: 0.2rem;
+  background: linear-gradient(150deg, #5A3479, #180C29);
+  box-shadow:
+    0 0.5rem 1.2rem rgba(0, 0, 0, 0.8),
+    inset 0.06rem 0.06rem 0 rgba(255, 244, 189, 0.22),
+    inset -0.06rem -0.06rem 0 rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.hall-plate .kicker { display: block; font-size: 0.46rem; letter-spacing: 0.16em; }
+.hall-plate strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: clamp(0.66rem, 1.15vw, 0.86rem);
+  font-weight: 500;
+  word-break: keep-all;
+}
+
+/* 문 아래 설명 — 기울어 누운 채로는 읽히지 않으니, 문이 정면으로 돌아서는
+   hover/focus 에서만 보여준다. 평소 복도는 명패만으로 조용하게 둔다.
+   문틀의 테(--ring)는 아래로도 번지므로, 글은 그 바깥에서 시작한다. */
+.hall-door-desc {
+  display: block;
+  margin: calc(var(--ring) + 0.55rem) 0 0;
+  min-height: 2.2rem;
+  color: var(--c-muted);
+  font-family: var(--f-ui);
+  font-size: 0.66rem;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.hall-door:hover .hall-door-desc,
+.hall-door:focus-visible .hall-door-desc { opacity: 1; }
+
+/* 열리는 문 하나만 남기고 나머지는 물러난다.
+   열린 문짝은 문틀 밖으로 젖혀져 나온다 — 두께와 뒷면이 보이는 자리다. */
+.hall.is-opening .hall-door:not(.is-open) { opacity: 0.12; filter: blur(2px); }
+.hall.is-opening .hall-door.is-open { z-index: 2; }
+.hall.is-opening .hall-door.is-open .hall-door-leaf { --open: -104deg; }
+.hall.is-opening .hall-doors { pointer-events: none; }
+.hall.is-opening .hall-title { opacity: 0; transition: opacity 0.5s ease; }
+
+.hall-guide {
+  position: absolute;
+  z-index: 20;
+  left: 50%; bottom: 4%;
+  transform: translateX(-50%);
+  margin: 0;
+  width: max-content;
+  max-width: 90vw;
+  color: #BCA9D2;
+  font-family: var(--f-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-align: center;
+  transition: opacity 0.3s ease;
+}
+.hall.is-opening .hall-guide { opacity: 0; }
+
+/* 좁은 화면 — 문 여섯 개를 3열 두 줄로 접는다.
+   flex-wrap 에 맡기면 폭에 따라 5+1 처럼 어긋나게 접히므로 열 수를 못박는다.
+   줄이 나뉘면 오목한 배열이 성립하지 않으므로 각도와 깊이를 걷어내고,
+   문틀의 깊이(--rv)만 남겨 입체감을 유지한다.
+   테(--ring)도 문에 맞춰 얇게 줄이고, 가로·세로 간격 모두 그 두 배를 깔아
+   윗줄의 테가 아랫줄 문을 밟지 않게 한다. */
+@media (max-width: 860px) {
+  .hall-doors {
+    --ring: 0.8rem;
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    align-items: end;
+    top: 56%;
+    gap: calc(var(--ring) * 2 + 0.9rem) calc(var(--ring) * 2 + clamp(0.25rem, 1.2vw, 0.5rem));
+    perspective: 900px;
+  }
+  .hall-door { width: min(23vw, 7rem); --ry: 0deg !important; --dz: 0px !important; }
+  .hall-door:hover,
+  .hall-door:focus-visible { transform: translateZ(40px) translateY(-0.3rem); }
+  .hall-door-frame { --rv: 1.3rem; border-width: 0.4rem 0.4rem 0; }
+  /* 좁은 문에서는 명패가 여러 줄이 되어 손잡이를 덮는다.
+     영문 첫줄을 접고 아래로 내려 손잡이 자리를 비운다. */
+  .hall-plate { bottom: 8%; width: 78%; }
+  .hall-plate .kicker { display: none; }
+  .hall-door-handle { width: 0.5rem; height: 0.5rem; }
+  .hall-door-desc { display: none; }
+  .hall-title { top: 3.6rem; }
+  .hall-title h1 { font-size: 1.35rem; }
+  .hall-title p { font-size: 0.75rem; }
+}
+@media (max-height: 620px) {
+  .hall-title p { display: none; }
+  .hall-door-desc { display: none; }
+}

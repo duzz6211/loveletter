@@ -1,0 +1,187 @@
+/* =========================================================================
+   door3d.css — 문 하나를 진짜 입체로 세우는 부품
+
+   이 사이트에는 문이 세 군데 있다. 미궁의 정면 문, 로비의 여섯 문,
+   방을 나가는 작은 문. 셋 다 같은 뼈대를 쓴다.
+
+     .door3d                 문틀. 이 안이 하나의 3D 무대다.
+       .door3d-jamb--l/r     문틀 안쪽 좌우 면
+       .door3d-jamb--head    문틀 안쪽 윗면(인방)
+       .door3d-jamb--sill    문지방
+       .door3d-back          문 너머의 면. ::after 가 새어 나오는 빛.
+       .door3d-leaf          문짝. 왼쪽 모서리를 경첩 삼아 돈다.
+         .door3d-edge        문짝의 두께(자유단)
+         .door3d-hinge       경첩
+         .door3d-face        문짝 앞면. 문살이 오목하게 파여 있다.
+
+   깊이는 두 개의 길이로만 정한다.
+     --rv  문이 뚫린 벽의 두께. 문틀이 안으로 파인 깊이다.
+     --th  문짝의 두께
+   문을 여는 쪽은 --open 각도 하나만 바꾼다.
+
+   문짝은 벽 두께의 한가운데쯤(--set)에 물려 있다. 벽 앞면에 딱 붙여 두면
+   닫혀 있을 때 두께가 하나도 안 보여서 문이 그림처럼 납작해진다.
+
+   무대(perspective)는 쓰는 쪽이 정한다. 로비처럼 여러 문이 한 공간에
+   둘러선 곳은 문들을 감싸는 요소가 perspective 를 갖고, 문 하나가
+   덩그러니 서 있는 곳(미궁·나가는 문)은 .door3d 가 직접 갖는다.
+   ========================================================================= */
+
+.door3d {
+  position: relative;
+  transform-style: preserve-3d;
+  overflow: visible;          /* overflow 를 자르면 preserve-3d 가 납작해진다 */
+  background: transparent;
+  --rv: var(--d-reveal);
+  --th: var(--d-leaf);
+  --set: calc(var(--rv) * 0.45);   /* 문짝이 벽 안으로 물려 들어간 깊이 */
+  --open: 0deg;
+}
+
+/* 문 하나만 서 있는 자리 — 스스로 무대가 된다 */
+.door3d--solo { perspective: 900px; }
+
+/* -------------------------------------------------------------------------
+   1. 벽의 두께 — 네 개의 면이 뒤로 접혀 들어가 통로를 만든다.
+      각 면은 벽 앞면에 닿는 쪽(모서리)에 밝은 선 한 줄을 두고,
+      안으로 갈수록 어두워진다. 그라디언트 방향은 면의 회전축에 맞춰 뒤집는다.
+   ------------------------------------------------------------------------- */
+
+.door3d-jamb { position: absolute; }
+
+.door3d-jamb--l {
+  left: 0; top: 0; bottom: 0;
+  width: var(--rv);
+  transform-origin: left center;
+  transform: rotateY(90deg);
+  background: linear-gradient(90deg, #8A63B2 0 2%, #5A3679 8%, #2A1743 55%, #150B26 100%);
+}
+.door3d-jamb--r {
+  right: 0; top: 0; bottom: 0;
+  width: var(--rv);
+  transform-origin: right center;
+  transform: rotateY(-90deg);
+  background: linear-gradient(270deg, #5E4180 0 2%, #3C2456 8%, #1E1136 55%, #100822 100%);
+}
+.door3d-jamb--head {
+  left: 0; right: 0; top: 0;
+  height: var(--rv);
+  transform-origin: center top;
+  transform: rotateX(-90deg);
+  background: linear-gradient(180deg, #4A2E6B 0 2%, #2E1A45 9%, #170C2A 55%, #0B0419 100%);
+}
+.door3d-jamb--sill {
+  left: 0; right: 0; bottom: 0;
+  height: var(--rv);
+  transform-origin: center bottom;
+  transform: rotateX(90deg);
+  background: linear-gradient(0deg, #7C51A0 0 2%, #4E2F6C 9%, #26153E 55%, #100722 100%);
+}
+
+/* -------------------------------------------------------------------------
+   2. 문 너머 — 뒤로 --rv 만큼 물러난 면.
+      평소에는 어둡고, 문이 열릴 때 ::after 의 노란빛이 차오른다.
+   ------------------------------------------------------------------------- */
+
+.door3d-back {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(calc(-1 * var(--rv)));
+  background: radial-gradient(ellipse at 50% 62%, #180D2A, #050209 78%);
+}
+.door3d-back::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 42% 58%, var(--c-gold-glow), rgba(255, 216, 77, 0.45) 34%, transparent 76%),
+    linear-gradient(102deg, #FFF3C0, rgba(255, 216, 77, 0.22) 60%, transparent);
+  transition: opacity 0.85s ease;
+}
+
+/* -------------------------------------------------------------------------
+   3. 문짝 — 앞면·뒷면·두께로 이루어진 판.
+      --th 만큼 뒤에 뒷면(::after)을 두고, 자유단에 두께 면을 세운다.
+   ------------------------------------------------------------------------- */
+
+.door3d-leaf {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: translateZ(calc(-1 * var(--set))) rotateY(var(--open, 0deg));
+  transform-style: preserve-3d;
+  transition: transform var(--t-door) var(--ease-door);
+}
+
+/* 뒷면 */
+.door3d-leaf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateZ(calc(-1 * var(--th)));
+  background: linear-gradient(160deg, #2B1845, #0D0520);
+  box-shadow: inset 0 0 1.8rem rgba(0, 0, 0, 0.9);
+}
+
+/* 두께 — 열렸을 때 이 면이 보여야 문이 판때기가 아니라 널이 된다 */
+.door3d-edge {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: var(--th);
+  transform-origin: right center;
+  transform: rotateY(-90deg);
+  background: linear-gradient(270deg, #7A4F9E, #241239);
+}
+
+.door3d-hinge {
+  position: absolute;
+  left: 0;
+  width: 0.3rem;
+  height: 7.5%;
+  transform: translateX(-42%) translateZ(0.05rem);
+  border-radius: 0.05rem;
+  background: linear-gradient(180deg, #F2DFB4, #97771F 52%, #4A390F);
+  box-shadow: 0 0.1rem 0.24rem rgba(0, 0, 0, 0.75);
+}
+.door3d-hinge--top    { top: 15%; }
+.door3d-hinge--bottom { bottom: 15%; }
+
+/* ---- 앞면 ---- */
+
+.door3d-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform-style: preserve-3d;
+  border: 0.12rem solid var(--c-gold-dim);
+  background:
+    /* 가운데 이음선 */
+    linear-gradient(90deg,
+      transparent 47.2%, rgba(0, 0, 0, 0.6) 48.6%,
+      rgba(226, 198, 132, 0.18) 49.8%, transparent 51.2%),
+    linear-gradient(158deg, #573479 0%, #35194F 52%, #150924 100%);
+  box-shadow: inset 0 0 2.6rem rgba(0, 0, 0, 0.9), var(--bevel-up);
+}
+
+/* 오목하게 파인 문살 세 짝. 판 자체는 문짝과 같은 면(z=0)에 있고,
+   테두리의 그늘·빛만으로 안으로 파여 보이게 한다. */
+.door3d-panels { position: absolute; inset: 0; transform: none; }
+.door3d-panels i {
+  position: absolute;
+  left: 11%; right: 11%;
+  border-radius: 0.06rem;
+  background: linear-gradient(158deg, rgba(0, 0, 0, 0.45), rgba(255, 244, 189, 0.07));
+  box-shadow: var(--bevel-in);
+}
+.door3d-panels i:nth-child(1) { top: 11%; height: 20%; }
+.door3d-panels i:nth-child(2) { top: 35%; height: 20%; }
+.door3d-panels i:nth-child(3) { top: 59%; height: 31%; }
+
+/* 앞면 위에 얹히는 것들(번호·문양·손잡이·명패)은 문살보다 조금 앞에 있다 */
+.door3d-face > * { transform: translateZ(0.05rem); }
+
+@media (prefers-reduced-motion: reduce) {
+  .door3d-leaf { transition: none; }
+}
