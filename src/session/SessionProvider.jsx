@@ -7,7 +7,7 @@
    ========================================================================= */
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { signInWithMeetingDate, signOut as doSignOut, isGateConfigured } from "../lib/auth.js";
+import { signInWithMeetingDate, signOut as doSignOut } from "../lib/auth.js";
 import { readSession, onSessionChange } from "../lib/session.js";
 
 const SessionContext = createContext(null);
@@ -26,8 +26,6 @@ export function SessionProvider({ children }) {
   const value = useMemo(
     () => ({
       ...state,
-      /** 봉인 날짜를 정해 두었는지. 안 정했으면 아무 날짜나 통과한다. */
-      configured: isGateConfigured(),
       /** 날짜로 봉인 열기. 성공하면 onSessionChange 가 상태를 갱신한다. */
       signIn: signInWithMeetingDate,
       signOut: doSignOut,

@@ -18,11 +18,8 @@ export default function Maze() {
   const { stageRef, plaqueRef, doorFrameRef } = refs;
   const {
     begin, approach, retreat, choose, submit,
-    markMousePointer, notifyEvade, skipToGate,
+    markMousePointer, notifyEvade,
   } = actions;
-  // 벽 열 개를 매번 다시 풀지 않도록 개발 중에만 건너뛰기를 둔다.
-  // import.meta.env.DEV 는 빌드할 때 false 로 굳으므로 배포본에는 남지 않는다.
-  const devSkip = import.meta.env.DEV;
 
   const wall = WALLS[state.step];
   const ordinal = ORDINAL[state.step];
@@ -171,12 +168,6 @@ export default function Maze() {
         />
         <p className="guide" id="guide" inert={backgroundInert}>{guideText}</p>
       </main>
-
-      {devSkip && !covered && (
-        <button className="demo-skip" type="button" onClick={skipToGate}>
-          개발 · 마지막 봉인으로 건너뛰기
-        </button>
-      )}
 
       {atIntro && <Prologue onEnter={begin} />}
       {atGate && <Gate date={state.gateDate} />}

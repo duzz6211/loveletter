@@ -1,6 +1,6 @@
-import DoorHall from "../components/room/DoorHall.jsx";
+import RoomScene from "../components/room/RoomScene.jsx";
 
-/** 아카이브의 로비. 여섯 개의 문이 늘어선 복도다. */
+/** 아카이브의 시작점. 물건이 놓인 방 하나다. */
 export default function ArchiveHome() {
-  return <DoorHall />;
+  return <RoomScene />;
 }

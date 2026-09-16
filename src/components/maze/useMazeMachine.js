@@ -16,7 +16,7 @@ import {
   WALLS, WRONG_MESSAGES, EVADE_MESSAGE, EVADE_TOUCH_MESSAGE, TIMING,
 } from "../../data/maze.js";
 import { matchesAnswer } from "../../lib/answers.js";
-import { GATE_DATE, isGateConfigured, normalizeDate } from "../../lib/auth.js";
+import { GATE_DATE, normalizeDate } from "../../lib/auth.js";
 
 const INITIAL = {
   step: 0,
@@ -38,12 +38,6 @@ const INITIAL = {
 /* 처음 열었을 때만 안내 화면에서 시작한다.
    INITIAL 자체를 intro 로 두면 벽을 넘어갈 때(advance)마다 안내가 다시 뜬다. */
 const START = { ...INITIAL, phase: "intro" };
-
-const prefersReducedMotion = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-/** 애니메이션을 끈 사용자에게는 대기 시간도 함께 줄인다. */
-const ms = (value) => (prefersReducedMotion() ? Math.min(value, 140) : value);
 
 const plaqueZoom = () => (window.innerWidth < 681 ? 2.4 : 3);
 const doorZoom = () => (window.innerWidth < 681 ? 5.5 : 7);
@@ -163,7 +157,7 @@ export default function useMazeMachine() {
     later(() => {
       if (phaseRef.current !== "approaching") return;
       setPhase("open", { panelOpen: true });
-    }, ms(TIMING.panelDelay));
+    }, TIMING.panelDelay);
   }, [cameraTo, setPhase, later]);
 
   const retreat = useCallback(() => {
@@ -232,11 +226,11 @@ export default function useMazeMachine() {
               // 5. 카메라가 문 안으로 전진한다
               cameraTo(doorFrameRef.current, doorZoom());
               setState((s) => ({ ...s, entering: true, flashing: true }));
-              later(advance, ms(TIMING.enter));
-            }, ms(TIMING.doorOpen) + ms(TIMING.lightHold));
-          }, ms(TIMING.cameraOut));
-        }, ms(TIMING.panelClose));
-      }, ms(TIMING.successHold));
+              later(advance, TIMING.enter);
+            }, TIMING.doorOpen + TIMING.lightHold);
+          }, TIMING.cameraOut);
+        }, TIMING.panelClose);
+      }, TIMING.successHold);
     },
     [setPhase, later, cameraReset, cameraTo, advance]
   );
@@ -267,7 +261,7 @@ export default function useMazeMachine() {
 
   /**
    * 주관식 — 적어 넣은 대답을 판정한다.
-   * 세 번째 벽(gateDate)만 accept 목록이 아니라 VITE_GATE_DATE 로 판정하고,
+   * 세 번째 벽(gateDate)만 accept 목록이 아니라 GATE_DATE 로 판정하고,
    * 통과한 날짜를 들고 있다가 마지막에 세션을 여는 데 쓴다.
    */
   const submit = useCallback(
@@ -277,7 +271,7 @@ export default function useMazeMachine() {
 
       if (wall.gateDate) {
         const date = normalizeDate(raw);
-        const passed = date !== null && (!isGateConfigured() || date === GATE_DATE);
+        const passed = date === GATE_DATE;
         if (!passed) {
           fail(nextWrongMessage());
           return;
@@ -314,25 +308,6 @@ export default function useMazeMachine() {
     sawMousePointerRef.current = true;
   }, []);
 
-  /**
-   * 테스트 모드 전용 — 열 개의 벽을 건너뛰고 마지막 봉인으로 간다.
-   * Maze.jsx 가 테스트 모드일 때만 호출한다. 실제 배포에서는 버튼이 없다.
-   */
-  const skipToGate = useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current.clear();
-    stepRef.current = WALLS.length - 1;
-    phaseRef.current = "gate";
-    camRef.current = { x: 0, y: 0, z: 1 };
-    gateDateRef.current = GATE_DATE;
-    setState({
-      ...INITIAL,
-      step: WALLS.length - 1,
-      phase: "gate",
-      gateDate: GATE_DATE,
-    });
-  }, []);
-
   /** 아니오 버튼이 달아났을 때의 안내 문구 */
   const notifyEvade = useCallback(() => {
     setState((s) => ({ ...s, feedback: { text: EVADE_MESSAGE, tone: "warn" } }));
@@ -343,7 +318,7 @@ export default function useMazeMachine() {
     refs: { stageRef, plaqueRef, doorFrameRef },
     actions: {
       begin, approach, retreat, choose, submit,
-      markMousePointer, notifyEvade, skipToGate,
+      markMousePointer, notifyEvade,
     },
   };
 }

@@ -1,0 +1,1705 @@
+/* =========================================================================
+   room-scene.css — 방탈저 장면(로비 대체)
+
+   방 하나를 통째로 CSS로 짓는다. 사진을 깔지 않는 이유는 단순하다 —
+   그림에 박힌 것은 고칠 수 없고, 화면 크기마다 물건의 자리가 어긋난다.
+
+   ---- 짓는 규칙 ----
+   · 빛은 왼쪽 책상 스탠드 하나에서 온다. 그 지점에서 멀어질수록 어둡고
+     차가워진다. 모든 물건의 그라디언트 방향이 여기에 맞춰져 있다.
+   · 자리는 전부 백분율이다. 무대가 늘 같은 비율(16:9)이라 어느 화면에서도
+     구도가 유지된다.
+   · 누를 수 있는 물건은 .rm-spot, 배경 소품은 .rm-* 이다. 이름만 보고
+     "이건 눌러도 되는가" 를 알 수 있게 나눠 둔다.
+   ========================================================================= */
+
+.roomscene {
+  position: fixed;
+  inset: 0;
+  background: #07040D;
+  overflow: hidden;
+}
+
+.roomscene-view {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  animation: roomscene-arrive 0.9s var(--ease-camera);
+}
+/* 직전 화면은 빛에 씻긴 채로 끝난다. 여기서 opacity 0(=검정)부터 시작하면
+   그 사이에 검은 프레임이 한 번 끼고, 그게 전환이 두 토막으로 보이는 이유다.
+   그래서 밝은 상태에서 이어받는다 — 나머지는 .arrive-wash 가 덮어 준다. */
+@keyframes roomscene-arrive {
+  from { opacity: 0.5; transform: scale(1.07); }
+  to   { opacity: 1;   transform: scale(1); }
+}
+
+/* 무대 — 비율을 지키며 화면 안에 최대로 들어간다.
+   비율이 고정이라 아래의 백분율 좌표가 어느 화면에서도 같은 구도를 만든다. */
+.roomscene-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: min(100%, calc(100dvh * 16 / 9));
+  max-height: 100%;
+  overflow: hidden;
+  background: #0E0719;
+
+  /* 장면 전체가 공유하는 원근. 소실점이 하나여야 물건들이 한 공간에 있는
+     것으로 보인다. 물건마다 perspective() 를 따로 주면 각자 다른 카메라로
+     찍은 것처럼 어긋난다. */
+  perspective: 1500px;
+  perspective-origin: 40% 44%;
+
+  /* 카메라. --lead-* 와 --cam-* 는 useDoorTransition 이 실제 좌표에서 잰다. */
+  transform-origin: 50% 50%;
+  transform: translate(var(--cam-x, 0px), var(--cam-y, 0px)) scale(var(--cam-z, 1));
+  transition: transform var(--t-camera) var(--ease-camera),
+              opacity 0.55s ease;
+  will-change: transform;
+}
+
+/* 1) 예열 — 물건이 열리는 동안 카메라가 이미 아주 조금 다가가 있다.
+   길게 잡아 두고 중간에서 넘겨받으므로, 넘겨주는 순간에도 아직 움직이는 중이다.
+   여기서 멈췄다가 2) 를 시작하면 화면이 한 번 서고, 그게 두 동작으로 보인다. */
+.roomscene.is-opening .roomscene-stage {
+  transform: translate(var(--lead-x, 0px), var(--lead-y, 0px)) scale(var(--lead-z, 1));
+  transition: transform 1.5s cubic-bezier(0.32, 0, 0.67, 1);
+}
+
+/* 2) 본 이동 — 예열이 남긴 속도를 그대로 이어받아 가속한다.
+   시작 기울기가 0 이면(= 순수 ease-in) 아무리 붙여 놔도 한 번 멈춘 것처럼 읽힌다.
+   그래서 첫 제어점을 살짝 띄워(0.03) 속도를 가진 채로 출발시킨다. */
+.roomscene.is-leaving .roomscene-stage {
+  transform: translate(var(--cam-x, 0px), var(--cam-y, 0px)) scale(var(--cam-z, 1));
+  transition: transform var(--t-enter) cubic-bezier(0.3, 0.03, 0.8, 0.4),
+              opacity var(--t-enter) ease-in;
+  opacity: 0;
+}
+
+.roomscene-flash {
+  position: absolute;
+  z-index: 90;
+  inset: 0;
+  pointer-events: none;
+  background: var(--c-gold-glow);
+  opacity: 0;
+}
+.roomscene-flash.is-active { animation: passage 1.3s ease; }
+
+/* =========================================================================
+   1. 방의 뼈대 — 다섯 면
+
+   면마다 무대 전체를 덮고 clip-path 로만 잘라 낸다. 그래야 꼭짓점 좌표를
+   그대로 공유할 수 있고, 면과 면 사이에 실금이 생기지 않는다.
+
+   뒷벽의 네 귀퉁이:  왼 14%  ·  오른 78%  ·  위 5%  ·  아래 70%
+   이 네 숫자가 방의 크기다. 하나를 바꾸면 다섯 면을 다 같이 고쳐야 한다.
+   ========================================================================= */
+
+/* 뒷벽. 바탕은 어둡게 깔고, 밝기는 전부 스탠드 빛(.rm-glow)이 만든다. */
+.rm-back {
+  position: absolute;
+  left: 14%; right: 22%;
+  top: 5%; bottom: 30%;
+  background:
+    /* 벽지의 세로 결 */
+    repeating-linear-gradient(90deg,
+      rgba(255, 255, 255, 0.013) 0 2px, transparent 2px 7px),
+    /* 회벽의 얼룩 — 빛을 더하는 게 아니라 눌러서 만든다.
+       주기가 다른 그늘 셋을 겹쳐 규칙성을 지운다. */
+    radial-gradient(34% 44% at 72% 30%, rgba(8, 3, 18, 0.34), transparent 72%),
+    radial-gradient(28% 50% at 40% 78%, rgba(8, 3, 18, 0.26), transparent 74%),
+    radial-gradient(48% 38% at 92% 8%, rgba(6, 2, 14, 0.42), transparent 70%),
+    linear-gradient(168deg, #2E1C4E 0%, #221340 48%, #150B27 100%);
+}
+/* 벽면의 입자 */
+.rm-back::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+/* 벽 중턱의 몰딩 — 한 줄이 아니라 얇은 턱이다.
+   윗면은 빛을 받고(밝음) 아랫면은 그늘이 진다(어두움). 그 사이의 옆면이
+   두께다. 세 층이 다 있어야 벽에서 튀어나온 것으로 보인다. */
+.rm-rail {
+  position: absolute;
+  left: 0; right: 0;
+  top: 61%;
+  height: 1.1%;
+  background: linear-gradient(180deg,
+    rgba(255, 228, 172, 0.34) 0%, rgba(255, 216, 150, 0.14) 26%,
+    rgba(70, 44, 20, 0.5) 52%, rgba(6, 2, 14, 0.7) 100%);
+  box-shadow: 0 0.18rem 0.35rem rgba(6, 2, 14, 0.55);
+}
+
+/* 굽도리 — 벽과 바닥이 만나는 자리의 널. 방의 아래를 닫아 준다. */
+.rm-skirt {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 4.5%;
+  background: linear-gradient(180deg,
+    rgba(255, 224, 168, 0.22) 0%, rgba(120, 88, 44, 0.32) 14%,
+    rgba(40, 24, 12, 0.6) 60%, rgba(6, 2, 14, 0.85) 100%);
+  box-shadow: 0 -0.12rem 0.4rem rgba(6, 2, 14, 0.5);
+}
+
+/* 좌우 벽 — 앞으로 벌어지는 사다리꼴. 원근을 만드는 건 이 두 면이다. */
+.rm-wall { position: absolute; inset: 0; }
+.rm-wall--l {
+  clip-path: polygon(0 0, 14% 5%, 14% 70%, 0 100%);
+  background: linear-gradient(94deg, #0E0719 0%, #1F1338 55%, #2C1A4A 100%);
+}
+.rm-wall--r {
+  clip-path: polygon(100% 0, 78% 5%, 78% 70%, 100% 100%);
+  background: linear-gradient(266deg, #0B0516 0%, #180E2E 60%, #201340 100%);
+}
+
+/* 천장 — 빛이 거의 닿지 않는다. 방의 위쪽을 눌러 주는 역할만. */
+.rm-ceil {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 0, 78% 5%, 14% 5%);
+  background: linear-gradient(180deg, #090513 0%, #150C26 100%);
+  box-shadow: inset 0 -0.4rem 1rem rgba(0, 0, 0, 0.8);
+}
+
+/* 바닥 — 앞으로 넓어진다. 널의 결은 가로로만. */
+.rm-floor {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(14% 70%, 78% 70%, 100% 100%, 0 100%);
+  background:
+    repeating-linear-gradient(180deg,
+      rgba(0, 0, 0, 0.32) 0 1px, transparent 1px 10px),
+    linear-gradient(180deg, #1E1328 0%, #2A1A34 40%, #150D1E 100%);
+}
+
+/* 깔개 — 바닥 가운데. 무늬는 옅은 마름모 격자로만 흉내 낸다. */
+.rm-rug {
+  position: absolute;
+  left: 20%; right: 16%;
+  bottom: 1%;
+  height: 22%;
+  border-radius: 46%;
+  background:
+    repeating-conic-gradient(from 45deg,
+      rgba(255, 214, 150, 0.045) 0 25%, transparent 0 50%) 0 0 / 1.5rem 1.5rem,
+    radial-gradient(60% 70% at 50% 45%, #3A2242 0%, #2A1932 60%, #1C1224 100%);
+  opacity: 0.55;
+}
+
+/* =========================================================================
+   2. 붙박이 소품 — 누를 수 없는 것들
+   ========================================================================= */
+
+/* ---- 장롱 (오른쪽 벽면, 문이 열려 있다) ---- */
+.rm-closet {
+  filter: blur(0.4px);
+  position: absolute;
+  right: 1.5%;
+  top: 7%;
+  width: 19%;
+  height: 58%;
+  border: 1px solid rgba(255, 214, 150, 0.16);
+  background: linear-gradient(170deg, #1C1126 0%, #120A1A 100%);
+  box-shadow: -0.7rem 0.6rem 2.2rem rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+/* 안쪽 면 — 테두리보다 한 겹 들어가 있다. 이 단차가 깊이를 만든다. */
+.rm-closet-inner {
+  position: absolute;
+  inset: 3% 4%;
+  background: linear-gradient(175deg, #5E4020 0%, #34210E 58%, #1A1008 100%);
+  box-shadow: inset 0.25rem 0 0.7rem rgba(0, 0, 0, 0.85),
+              inset -0.25rem 0 0.7rem rgba(0, 0, 0, 0.85);
+}
+
+/* 안쪽 좌우 면과 윗면. 정면 면과 각도가 달라 밝기가 다르고,
+   그 밝기 차이가 "안쪽으로 파인 공간"을 만든다. */
+.rm-closet-face {
+  position: absolute;
+  pointer-events: none;
+}
+.rm-closet-face--l {
+  left: 3%; top: 3%; bottom: 3%;
+  width: 13%;
+  clip-path: polygon(0 0, 100% 9%, 100% 91%, 0 100%);
+  background: linear-gradient(90deg, #6A4A24 0%, #3A2610 70%, #1E1408 100%);
+}
+.rm-closet-face--r {
+  right: 3%; top: 3%; bottom: 3%;
+  width: 13%;
+  clip-path: polygon(100% 0, 0 9%, 0 91%, 100% 100%);
+  background: linear-gradient(270deg, #4A3218 0%, #2A1B0C 70%, #150E06 100%);
+}
+.rm-closet-face--top {
+  left: 3%; right: 3%; top: 3%;
+  height: 9%;
+  clip-path: polygon(0 0, 100% 0, 87% 100%, 13% 100%);
+  background: linear-gradient(180deg, #7A5A2E, #3A2610);
+}
+
+/* 장롱 안 조명 — 위에서 아래로 떨어지는 따뜻한 빛 */
+.rm-closet-glow {
+  position: absolute;
+  left: 10%; right: 10%;
+  top: 3%;
+  height: 62%;
+  background: linear-gradient(180deg,
+    rgba(255, 206, 128, 0.85) 0%, rgba(255, 190, 104, 0.34) 42%,
+    rgba(255, 180, 96, 0.1) 70%, transparent 100%);
+}
+/* 장롱 안 빛이 방으로 새어 나오는 자리 */
+.rm-closet::after {
+  content: "";
+  position: absolute;
+  left: -14%; right: -6%;
+  top: -6%;
+  height: 56%;
+  background: radial-gradient(60% 70% at 46% 34%,
+    rgba(255, 190, 104, 0.22), transparent 72%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+/* 열린 문짝 — 왼쪽 가장자리에 세로로 선다 */
+.rm-closet-door {
+  position: absolute;
+  left: -7%;
+  top: -2%;
+  width: 9%;
+  height: 104%;
+  background:
+    /* 문짝의 널 — 세로로 세 쪽 */
+    repeating-linear-gradient(90deg,
+      transparent 0 30%, rgba(6, 2, 14, 0.4) 30% 32%, transparent 32% 100%),
+    linear-gradient(90deg, #4A2E62 0%, #2C1944 58%, #180D2A 100%);
+  box-shadow: 0.4rem 0 1.2rem rgba(0, 0, 0, 0.8),
+              inset 0 0.08rem 0 rgba(210, 180, 240, 0.18);
+}
+/* 문 손잡이 */
+.rm-closet-door::after {
+  content: "";
+  position: absolute;
+  right: 14%;
+  top: 46%;
+  width: 26%;
+  height: 4%;
+  border-radius: 0.1rem;
+  background: linear-gradient(180deg, #F0D08A, #8A6520 60%, #3E2C10);
+  box-shadow: 0 0.12rem 0.24rem rgba(0, 0, 0, 0.85);
+}
+
+/* 위 칸 선반 — 잠긴 상자가 이 위에 놓인다 */
+.rm-shelf {
+  position: absolute;
+  left: 6%; right: 6%;
+  top: 27%;
+  height: 2px;
+  background: linear-gradient(180deg, rgba(255, 220, 160, 0.45), rgba(40, 28, 14, 0.9));
+}
+
+/* 옷걸이 봉 */
+.rm-rod {
+  position: absolute;
+  left: 8%; right: 8%;
+  top: 44%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(255, 228, 170, 0.6), rgba(90, 66, 30, 0.9));
+}
+
+/* 걸린 옷 — 어깨에서 밑단으로 벌어지는 사다리꼴 */
+.rm-coat {
+  position: absolute;
+  top: 44%;
+  width: 15%;
+  height: 40%;
+  clip-path: polygon(40% 0, 60% 0, 96% 12%, 86% 100%, 14% 100%, 4% 12%);
+  filter: drop-shadow(0.1rem 0.4rem 0.5rem rgba(0, 0, 0, 0.75));
+}
+.rm-coat--a { left: 16%; background: linear-gradient(168deg, #8474A0, #2E2542); }
+.rm-coat--b { left: 34%; height: 46%; background: linear-gradient(168deg, #A897C4, #3B3055); }
+.rm-coat--c { left: 52%; height: 37%; background: linear-gradient(168deg, #6E5E8C, #272038); }
+
+/* ---- 책상 — clip-path 로 흉내 낸 사다리꼴이 아니라 진짜 눕힌 평면이다.
+        상판을 rotateX 로 실제로 눕히면 원근이 저절로 생긴다: 먼 쪽이 좁아지고
+        가까운 쪽이 넓어진다. 사다리꼴을 손으로 그리면 이 수렴이 틀어진다. ---- */
+.rm-desk {
+  position: absolute;
+  left: 4%;
+  bottom: 4%;
+  width: 52%;
+  height: 33%;
+  transform-style: preserve-3d;
+}
+
+/* 상판. 바닥 모서리(책상 앞날)를 축으로 뒤로 눕힌다.
+   74도와 height:168% 가 짝이다 — 눕힌 만큼 길어야 화면에서 제 깊이로 보인다. */
+.rm-desk-top {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 54%;
+  height: 168%;
+  transform: rotateX(74deg);
+  transform-origin: bottom center;
+  background:
+    repeating-linear-gradient(91deg,
+      rgba(22, 10, 4, 0.2) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(93deg,
+      rgba(255, 206, 140, 0.05) 0 2px, transparent 2px 23px),
+    repeating-linear-gradient(90.5deg,
+      rgba(22, 10, 4, 0.1) 0 3px, transparent 3px 41px),
+    /* 스탠드 쪽(왼쪽 뒤)이 가장 밝다 */
+    radial-gradient(52% 38% at 17% 25%, rgba(255, 204, 128, 0.46), transparent 68%),
+    radial-gradient(70% 52% at 34% 46%, rgba(255, 186, 104, 0.16), transparent 72%),
+    linear-gradient(0deg, #6B4726 0%, #55371D 46%, #33200F 100%);
+}
+.rm-desk-top::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  opacity: 0.1;
+}
+
+/* 상판의 두께. 앞날에 얇게 보이는 이 면이 "판"을 "덩어리"로 만든다. */
+.rm-desk-edge {
+  position: absolute;
+  left: 0; right: 0;
+  top: 46%;
+  height: 3.6%;
+  background: linear-gradient(180deg, #8A5C31 0%, #5E3C1F 60%, #3A2412 100%);
+  box-shadow: var(--rim-warm);
+}
+
+/* 앞면 — 상판보다 확실히 어둡다. 두 면의 밝기 차이가 두께를 만든다. */
+.rm-desk-front {
+  position: absolute;
+  left: 0; right: 0;
+  top: 49.6%;
+  height: 13%;
+  background: linear-gradient(180deg, #33200F 0%, #241407 60%, #140B05 100%);
+}
+
+/* 서랍 한 칸 — 앞면보다 한 겹 들어가 있다 */
+.rm-desk-drawer {
+  position: absolute;
+  left: 33%;
+  top: 51%;
+  width: 34%;
+  height: 10%;
+  border-radius: 0.08rem;
+  background: linear-gradient(180deg, #2C1B0C, #1A0F06);
+  box-shadow:
+    inset 0 0.07rem 0.2rem rgba(0, 0, 0, 0.85),
+    inset 0 -0.05rem 0 rgba(255, 200, 130, 0.12);
+}
+.rm-desk-drawer::after {
+  content: "";
+  position: absolute;
+  left: 34%; right: 34%;
+  top: 44%;
+  height: 2.5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #F0D08A 0%, #A8822F 45%, #4A3412 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* 다리 — 앞면과 옆면 두 장이라야 기둥으로 보인다 */
+.rm-desk-leg {
+  position: absolute;
+  top: 62%; bottom: 0;
+  width: 5%;
+  background: linear-gradient(90deg, #3A2312 0%, #2A1810 55%, #150C06 100%);
+  box-shadow: inset 0.08rem 0 0 rgba(255, 200, 130, 0.16);
+}
+.rm-desk-leg--l { left: 3%; }
+.rm-desk-leg--r { right: 3%; }
+
+/* 책상이 바닥에 드리우는 그늘 */
+.rm-desk::after {
+  content: "";
+  position: absolute;
+  left: -6%; right: -6%;
+  bottom: -14%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(6, 2, 14, 0.75), transparent 70%);
+  filter: blur(8px);
+  transform: translateZ(-1px);
+}
+
+/* ---- 스탠드 — 이 방의 유일한 광원. 책상 뒤쪽 왼편에 선다.
+        갓·기둥·받침이 한 세로축(50%)에 정렬돼 있어야 한 물건으로 보인다. ---- */
+.rm-lamp {
+  position: absolute;
+  left: 9.5%;
+  top: 38%;
+  width: 11%;
+  height: 25.5%;
+}
+/* 기둥 */
+.rm-lamp-arm {
+  position: absolute;
+  left: calc(50% - 1px);
+  top: 30%;
+  width: 2px;
+  height: 68%;
+  background: linear-gradient(90deg, rgba(255, 228, 170, 0.75), #4E3414);
+}
+/* 갓 — 아래로 열린 사다리꼴. 아래 테두리가 가장 밝다. */
+.rm-lamp-hood {
+  position: absolute;
+  left: 18%;
+  top: 6%;
+  width: 64%;
+  height: 26%;
+  clip-path: polygon(26% 0, 74% 0, 100% 100%, 0 100%);
+  /* 놋쇠 갓. 금속은 밝기가 매끄럽게 변하지 않고 띠로 끊긴다 —
+     반사되는 상(像)이 있기 때문이다. 그래서 단계를 둔 그라디언트를 쓴다. */
+  background: linear-gradient(96deg,
+    #3E2C12 0%, #6E4E1C 14%, #C79A3A 30%, #FFE9B4 44%,
+    #D8A845 58%, #8A6524 76%, #4A3414 100%);
+  filter: drop-shadow(0 0.35rem 1.5rem rgba(255, 200, 110, 0.8));
+}
+/* 갓 아래로 보이는 안쪽 면 — 전구 빛을 정면으로 받아 가장 밝다 */
+.rm-lamp-hood::before {
+  content: "";
+  position: absolute;
+  left: 4%; right: 4%;
+  bottom: 0;
+  height: 26%;
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, #FFEFC8, #FFD98A);
+  box-shadow: 0 0 1rem rgba(255, 224, 160, 0.9);
+}
+/* 갓 아래 매달린 전구 — 이 점이 방의 광원이다 */
+.rm-lamp-hood::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: -14%;
+  width: 22%; aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #FFF3CE;
+  box-shadow: 0 0 1.2rem 0.35rem rgba(255, 216, 140, 0.95);
+}
+.rm-lamp-base {
+  position: absolute;
+  left: 34%;
+  bottom: 0;
+  width: 32%;
+  height: 5%;
+  border-radius: 50%;
+  background: linear-gradient(176deg,
+    #FFE3A0 0%, #C79A45 26%, #7A5620 58%, #3A2810 100%);
+  box-shadow: 0 0.18rem 0.4rem rgba(0, 0, 0, 0.85),
+              inset 0 0.05rem 0 rgba(255, 244, 200, 0.7);
+}
+
+/* 책상에 떨어진 빛 웅덩이 */
+.rm-pool {
+  position: absolute;
+  left: 4%;
+  bottom: 6%;
+  width: 44%;
+  height: 26%;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(50% 50% at 42% 40%,
+    rgba(255, 206, 122, 0.4) 0%, rgba(255, 190, 100, 0.13) 42%, transparent 74%);
+  mix-blend-mode: screen;
+}
+
+/* 방 전체에 퍼지는 빛. 스탠드에서 멀어질수록 급격히 어두워진다 —
+   이 한 겹이 방의 분위기를 거의 다 만든다. */
+.rm-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background:
+    radial-gradient(46% 52% at 20% 52%,
+      rgba(255, 196, 108, 0.42) 0%, rgba(255, 170, 80, 0.16) 34%,
+      rgba(120, 70, 160, 0.05) 60%, transparent 78%),
+    /* 천장 쪽으로 튀는 반사광 — 줄에 매단 쪽지가 완전히 식지 않게 */
+    radial-gradient(42% 30% at 48% 16%,
+      rgba(255, 196, 120, 0.16), transparent 74%);
+  mix-blend-mode: screen;
+}
+
+/* ---- 화분 (책상 위, 스탠드 옆) ---- */
+.rm-plant {
+  position: absolute;
+  left: 33%;
+  top: 59.5%;
+  width: 5.5%;
+  height: 6.5%;
+}
+.rm-plant i {
+  position: absolute;
+  bottom: 0;
+  width: 44%;
+  height: 92%;
+  border-radius: 62% 4% 62% 4%;
+  background: linear-gradient(150deg, #7E9E44, #2E4418);
+}
+.rm-plant i:nth-child(1) { left: 0;   transform: rotate(-38deg) scale(0.8); }
+.rm-plant i:nth-child(2) { left: 18%; transform: rotate(-12deg) scale(0.95); }
+.rm-plant i:nth-child(3) { left: 40%; transform: rotate(12deg) scale(0.9); }
+.rm-plant i:nth-child(4) { left: 58%; transform: rotate(36deg) scale(0.76); }
+
+/* ---- 안락의자 (가운데 뒤, 어둠 속에)
+        덩어리 두 개로는 소파가 안 된다. 등받이·팔걸이·방석·다리가
+        각각 다른 각도로 빛을 받아야 천을 씌운 가구로 보인다. ---- */
+.rm-chair {
+  position: absolute;
+  left: 56%;
+  top: 48%;
+  width: 15%;
+  height: 25%;
+  filter: blur(0.7px);
+}
+
+/* 등받이 — 위가 둥글고, 천이 눌린 가운데가 어둡다 */
+.rm-chair-back {
+  position: absolute;
+  left: 11%; right: 11%;
+  top: 0;
+  height: 62%;
+  border-radius: 0.8rem 0.8rem 0.2rem 0.2rem;
+  background:
+    radial-gradient(70% 60% at 50% 74%, rgba(8, 3, 18, 0.45), transparent 70%),
+    linear-gradient(168deg, #2C1D40 0%, #1D1230 62%, #100821 100%);
+  box-shadow: inset 0 0.12rem 0 rgba(160, 132, 190, 0.14);
+}
+
+/* 팔걸이 — 둥글게 말린 통. 위쪽 능선만 밝다. */
+.rm-chair-arm {
+  position: absolute;
+  top: 36%;
+  width: 16%;
+  height: 46%;
+  border-radius: 0.5rem;
+  background: linear-gradient(94deg, #35244E 0%, #241634 52%, #130B22 100%);
+  box-shadow: inset 0 0.1rem 0 rgba(170, 142, 200, 0.16);
+}
+.rm-chair-arm--l { left: 0; }
+.rm-chair-arm--r { right: 0; background: linear-gradient(266deg, #2C1D40 0%, #1D1230 52%, #100821 100%); }
+
+/* 앉는 자리 */
+.rm-chair-seat {
+  position: absolute;
+  left: 8%; right: 8%;
+  bottom: 12%;
+  height: 32%;
+  border-radius: 0.3rem;
+  background: linear-gradient(180deg, #33234C 0%, #201434 70%, #120A24 100%);
+  box-shadow: var(--cast-sm);
+}
+
+/* 방석 한 장 — 소파에 던져 둔 것. 실루엣이 하나 더 있으면 사람 사는 방이 된다. */
+.rm-chair-cushion {
+  position: absolute;
+  left: 22%;
+  bottom: 30%;
+  width: 38%;
+  height: 26%;
+  border-radius: 0.28rem;
+  transform: rotate(-7deg);
+  background: linear-gradient(162deg, #4A3462 0%, #2E1F46 68%, #1B122C 100%);
+  box-shadow: var(--cast-sm), inset 0 0.08rem 0 rgba(176, 150, 206, 0.18);
+}
+
+/* 다리 — 짧게 보여도 바닥에서 띄워 주는 역할을 한다 */
+.rm-chair-leg {
+  position: absolute;
+  bottom: 0;
+  width: 6%;
+  height: 12%;
+  background: linear-gradient(90deg, #3A2A18, #1C1409);
+}
+.rm-chair-leg--l { left: 14%; }
+.rm-chair-leg--r { right: 14%; }
+
+/* =========================================================================
+   3. 누를 수 있는 물건
+   ========================================================================= */
+
+.roomscene-spots {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+}
+
+/* 물건 한 칸. 자리와 크기는 아래에서 kind 마다 따로 준다. */
+.rm-spot {
+  /* display 를 주지 않으면 <button> 이 내용물을 익명 상자에 담아 가운데 정렬하고,
+     그 안의 절대배치 자식이 버튼 크기가 아니라 그 익명 상자를 기준으로 잡힌다. */
+  display: block;
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-camera);
+}
+.rm-spot:focus-visible { outline: none; }
+
+/* 가리키고 있는 물건은 다른 물건들 위로 올라온다.
+   이름표는 물건 안에 들어 있으므로, 물건 자체를 올리지 않으면
+   DOM 순서상 뒤에 오는 물건(설명서·휴대폰·상자…)이 앞 물건의 이름표를 덮는다.
+   z-index 를 여기서만 올리는 이유는, 평소에는 원래의 앞뒤 관계를
+   그대로 두어야 책상 위 물건들이 자연스럽게 겹치기 때문이다. */
+.rm-spot.is-near,
+.rm-spot:hover,
+.rm-spot:focus-visible { z-index: 40; }
+
+/* 가까이 가면 물건이 살짝 들리고 금빛을 문다.
+   테두리를 그리는 대신 빛으로만 알린다 — 방 안의 물건답게. */
+.rm-spot:hover,
+.rm-spot:focus-visible {
+  transform: translateY(-0.28rem) scale(1.03);
+  filter: drop-shadow(0 0 0.9rem rgba(255, 216, 77, 0.65))
+          drop-shadow(0 0.5rem 0.8rem rgba(0, 0, 0, 0.6));
+}
+
+/* 물건이 바닥에 닿는 자리의 그늘(앰비언트 오클루전).
+   물건과 표면이 만나는 곳은 빛이 거의 들어가지 못해 가장 어둡다.
+   이 한 겹이 없으면 물건이 표면에 '놓인' 게 아니라 '붙은' 것처럼 보인다. */
+.rm-spot::before {
+  content: "";
+  position: absolute;
+  left: 2%; right: 2%;
+  bottom: -6%;
+  height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 38% 50%, rgba(6, 2, 14, 0.75), transparent 74%);
+  filter: blur(4px);
+  transform: skewX(-16deg) translateX(7%);
+  pointer-events: none;
+  z-index: -1;
+}
+/* 벽에 걸린 것은 바닥에 닿지 않는다 */
+.rm-spot--frames::before,
+.rm-spot--string::before { display: none; }
+
+/* 가만히 있을 때도 "여기 있다" 고 아주 옅게 알린다 */
+.rm-spot::after {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  border-radius: 0.4rem;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(255, 216, 77, 0.2), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: rm-spot-breathe 3.4s ease-in-out infinite;
+}
+@keyframes rm-spot-breathe {
+  0%, 100% { opacity: 0.1; }
+  50%      { opacity: 0.4; }
+}
+.rm-spot:hover::after,
+.rm-spot:focus-visible::after { opacity: 0; }
+
+/* ---- 이름표 ---- */
+.rm-spot-tag {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.7rem);
+  z-index: 3;
+
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.44rem 0.72rem;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: rgba(16, 8, 30, 0.95);
+  box-shadow: 0 0.5rem 1.6rem rgba(4, 2, 10, 0.75);
+  text-align: left;
+  white-space: nowrap;
+
+  opacity: 0;
+  transform: translateY(-50%) translateX(-0.4rem);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+/* 오른쪽 끝 물건은 이름표가 화면 밖으로 나가므로 왼쪽에 붙인다 */
+.rm-spot.is-left .rm-spot-tag {
+  left: auto;
+  right: calc(100% + 0.7rem);
+  text-align: right;
+  transform: translateY(-50%) translateX(0.4rem);
+}
+.rm-spot-tag strong { font-size: 0.82rem; font-weight: 600; color: var(--c-ink); }
+.rm-spot-tag small  { font-size: 0.7rem; color: var(--c-faint); }
+
+.rm-spot.is-near .rm-spot-tag,
+.rm-spot:focus-visible .rm-spot-tag {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* 누른 순간의 연출은 4장에 모아 두었다 */
+
+/* ------------------------------------------------------ 3-1. 벽의 액자들
+
+   액자 자체는 CSS가 그리고, 안쪽 그림만 이미지(webp)다.
+   그림을 갈아 끼워도 테·매트·옆면·유리의 재질과 빛은 그대로 남는다.
+   ------------------------------------------------------------------------- */
+
+.rm-spot--frames { left: 15%; top: 10%; width: 16%; height: 43%; }
+
+.obj-art { position: absolute; inset: 0; }
+
+/* 액자 한 틀 — 금테 + 매트 + 옆면(두께) */
+.obj-art-frame {
+  position: absolute;
+  padding: 5%;
+  border: 0.2rem solid;
+  /* 테는 위/왼쪽이 밝고 아래/오른쪽이 어둡다 — 빛이 왼쪽 위에서 온다 */
+  border-color: #C79A45 #6E5218 #5A4313 #B08C38;
+  background: linear-gradient(152deg, #D6A84E 0%, #9A7530 38%, #61481C 72%, #3E2C11 100%);
+  box-shadow: var(--cast-md), inset 0 0.05rem 0 rgba(255, 238, 190, 0.6);
+}
+
+/* 옆면 — 벽에서 떨어져 나온 만큼 왼쪽에 그늘진 면이 보인다.
+   이 한 장이 "벽에 그린 그림"과 "벽에 건 액자"를 가른다. */
+.obj-art-side {
+  position: absolute;
+  left: -0.22rem;
+  top: 0.14rem; bottom: -0.14rem;
+  width: 0.22rem;
+  background: linear-gradient(90deg, #1E1307, #4A3516);
+}
+
+/* 매트 — 그림을 둘러싼 종이 테두리. 그림은 이 안에 들어간다. */
+.obj-art-mat {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 7%;
+  background: linear-gradient(170deg, #EFE3C2, #C9B892);
+  box-shadow: inset 0 0 0.5rem rgba(90, 66, 30, 0.45);
+  overflow: hidden;
+}
+
+.obj-art-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 액자 안쪽은 유리 아래로 한 겹 파여 있다 */
+  box-shadow: inset 0 0 0.4rem rgba(40, 28, 12, 0.7);
+}
+/* src 가 없을 때의 빈 매트 */
+.obj-art-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #D8C9A2, #B9A77E);
+  box-shadow: inset 0 0 0.4rem rgba(40, 28, 12, 0.5);
+}
+
+/* 유리에 비스듬히 걸린 빛 — 액자 넷이 같은 방향으로 반사해야 같은 방에 걸린 것이 된다 */
+.obj-art-glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(122deg,
+    transparent 38%,
+    rgba(255, 252, 240, 0.16) 38%, rgba(255, 252, 240, 0.16) 45%,
+    transparent 45%, transparent 48%,
+    rgba(255, 252, 240, 0.08) 48%, rgba(255, 252, 240, 0.08) 51%,
+    transparent 51%);
+  pointer-events: none;
+}
+
+/* 네 액자의 자리와 크기. 조금씩 기울여야 "걸어 둔 것"으로 보인다.
+
+   height 는 걸린 사진의 비율에 맞춰 잰 값이다 — 자리와 사진의 비율이 어긋난
+   만큼 object-fit: cover 가 잘라내므로, 맞춰 두면 사진이 온전히 들어온다.
+   사진을 갈아 끼우면 여기도 다시 재야 한다. 선언한 %비율과 화면 비율은
+   단순 비례가 아니다(테두리는 rem 고정, 매트 여백은 폭 기준 %) —
+   높이 두 개만 재 보면 1/비율 이 높이의 1차식이라 바로 풀린다.
+
+   오른쪽 세 점은 4% 에서 시작해 7.75% 씩 띄웠다. */
+.obj-art-frame--motto   { left: 0;    top: 0;     width: 60%; height: 50.4%; transform: rotate(-0.6deg); }
+.obj-art-frame--moon    { left: 68%;  top: 4%;    width: 32%; height: 25.7%; transform: rotate(1.1deg); }
+.obj-art-frame--botanic { left: 68%;  top: 37.4%; width: 28%; height: 26.8%; transform: rotate(-0.8deg); }
+.obj-art-frame--dial    { left: 64%;  top: 72%;   width: 32%; height: 25.6%; transform: rotate(0.7deg); }
+
+/* ------------------------------------------------- 3-2. 줄에 매달린 쪽지 */
+
+.rm-spot--string { left: 33%; top: 10%; width: 38%; height: 22%; }
+
+.obj-clipline { position: absolute; inset: 0; }
+
+/* 줄 — 가운데가 아주 살짝 처진다 */
+.obj-clipline-cord {
+  position: absolute;
+  left: 0; right: 0;
+  top: 8%;
+  height: 34%;
+  border-top: 1px solid rgba(214, 190, 140, 0.75);
+  border-radius: 50%;
+}
+
+/* 집게에 물린 자리 — 종이가 눌려 그늘이 진다 */
+.obj-clipnote-pin {
+  position: absolute;
+  left: 34%;
+  top: 6%;
+  z-index: 3;
+  width: 32%;
+  height: 10%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(90, 68, 30, 0.5), transparent 72%);
+}
+
+/* 쪽지 한 장. --i 로 서로 다른 높이와 기울기를 준다 —
+   똑같이 걸리면 벽지 무늬처럼 보인다. */
+.obj-clipnote {
+  position: absolute;
+  top: calc(14% + (var(--i) - 2) * (var(--i) - 2) * -1.6%);
+  left: calc(2% + var(--i) * 20%);
+  width: 15%;
+  height: 62%;
+  transform: rotate(calc((var(--i) - 2) * 1.6deg));
+  transform-origin: top center;
+}
+.obj-clipnote-peg {
+  position: absolute;
+  left: 42%;
+  top: -12%;
+  z-index: 2;
+  width: 16%;
+  height: 26%;
+  border-radius: 0.05rem;
+  background: linear-gradient(180deg, #E0C489, #8A6A38);
+  box-shadow: 0 0.1rem 0.2rem rgba(0, 0, 0, 0.7);
+}
+.obj-clipnote-paper {
+  position: absolute;
+  inset: 8% 0 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.05em;
+  padding: 6% 4%;
+  /* 매달린 종이는 평평하지 않다. 가운데가 앞으로 배어 나오고
+     양 끝이 뒤로 말린다 — 세로 그라디언트로 그 휨을 만든다. */
+  background:
+    linear-gradient(90deg,
+      rgba(120, 96, 50, 0.22) 0%, transparent 14%,
+      transparent 86%, rgba(120, 96, 50, 0.26) 100%),
+    linear-gradient(168deg, #FBF3DA 0%, #E9DCB8 62%, #D2C199 100%);
+  box-shadow: var(--cast-sm), inset 0 0 0.5rem rgba(140, 112, 60, 0.28);
+}
+.obj-clipnote-paper::after,
+.obj-letter-body::after,
+.obj-manual-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  opacity: 0.13;
+  pointer-events: none;
+}
+
+/* 아래쪽 귀퉁이가 앞으로 말린다. 매달린 종이는 평평하게 걸리지 않는다. */
+.obj-clipnote-curl {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26%;
+  height: 20%;
+  background: linear-gradient(315deg, #BCAA80 0%, #E4D6B0 46%, transparent 47%);
+  filter: drop-shadow(-0.06rem -0.06rem 0.1rem rgba(60, 44, 18, 0.45));
+}
+
+.obj-clipnote-paper em {
+  color: #3A2C14;
+  font-style: normal;
+  font-family: var(--f-hand);
+  font-size: clamp(0.5rem, 1.05vw, 0.95rem);
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* ------------------------------------------------------- 3-3. 책상 위 편지 */
+
+.rm-spot--letter { left: 13%; top: 67%; width: 12%; height: 9%; }
+
+.obj-letter { position: absolute; inset: 0; }
+
+/* 책상에 놓인 물건이라 눕혀 두되, 각을 세게 주면 봉투가 납작한 막대가 된다.
+   20도면 "놓여 있다" 는 느낌은 나면서 모양은 읽힌다. */
+.obj-letter-body {
+  position: absolute;
+  inset: 0;
+  transform: perspective(520px) rotateX(20deg) rotate(-3deg);
+  transform-origin: center bottom;
+  border-radius: 0.08rem;
+  background: linear-gradient(174deg, #F7EFD6 0%, #E9DCBA 60%, #D2C29A 100%);
+  /* 종이 한 장이 아니라 속이 찬 봉투다. 아래로 얇은 단을 깔아 두께를 만든다. */
+  box-shadow:
+    0 1px 0 #C9B98F,
+    var(--cast-md),
+    inset 0 0.05rem 0 rgba(255, 255, 255, 0.85);
+}
+/* 덮개 — 위에서 내려와 가운데로 모이는 삼각형.
+   몸통과 색이 비슷하면 아예 안 보이므로 한 단계 어둡게 깔고 접힌 선을 남긴다. */
+.obj-letter-flap {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 62%;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(180deg, #E4D5AE 0%, #D3C193 70%, #BCA97C 100%);
+  filter: drop-shadow(0 0.12rem 0.16rem rgba(90, 70, 34, 0.55));
+}
+/* 봉랍 — 이 편지에서 가장 눈에 띄는 한 점. 덮개 끝에 찍힌다. */
+.obj-letter-seal::after {
+  content: "";
+  position: absolute;
+  left: 26%; top: 20%;
+  width: 26%; height: 20%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 226, 232, 0.75), transparent 70%);
+  filter: blur(0.4px);
+}
+
+.obj-letter-seal {
+  position: absolute;
+  left: 50%; top: 62%;
+  width: 20%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(58% 58% at 33% 27%, #D4566E 0%, #A02742 42%, #6B1428 74%, #480D1C 100%);
+  box-shadow:
+    0 0.1rem 0.2rem rgba(6, 2, 14, 0.85),
+    inset 0 -0.06rem 0.1rem rgba(0, 0, 0, 0.6),
+    inset 0.04rem 0.04rem 0.06rem rgba(255, 180, 190, 0.45);
+}
+
+/* ------------------------------------------------------- 3-4. 사용설명서 */
+
+.rm-spot--manual { left: 27%; top: 65%; width: 14%; height: 12%; }
+
+.obj-manual { position: absolute; inset: 0; }
+.obj-manual-page {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2.5%;
+  padding: 5% 4%;
+  transform: perspective(460px) rotateX(34deg) rotate(3deg);
+  transform-origin: center bottom;
+  background: linear-gradient(168deg, #F0E3C0 0%, #E0D0A6 55%, #C9B68A 100%);
+  /* 낱장이 아니라 묶음이다 — 아래에 얇은 단이 두 겹 깔린다 */
+  box-shadow:
+    0 1px 0 #CFC098, 0 2px 0 #BFB088, 0 3px 0 #A89A74,
+    var(--cast-md),
+    inset 0 0 0.9rem rgba(130, 100, 50, 0.32);
+}
+/* 표지는 한글이다 — Georgia 에는 한글이 없어 대체 글꼴로 흘러가므로 UI 서체를 쓴다 */
+.obj-manual-title {
+  color: #3A2A10;
+  font-style: normal;
+  font-family: var(--f-ui);
+  font-weight: 800;
+  font-size: clamp(0.34rem, 0.74vw, 0.62rem);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+/* 나침도 — 원 하나와 십자 눈금 */
+.obj-manual-compass {
+  position: relative;
+  width: 21%;
+  aspect-ratio: 1;
+  border: 1px solid #6E5424;
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg, transparent calc(50% - 0.5px), #6E5424 calc(50% - 0.5px),
+      #6E5424 calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(90deg, transparent calc(50% - 0.5px), #6E5424 calc(50% - 0.5px),
+      #6E5424 calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+.obj-manual-steps {
+  color: #4A3818;
+  font-style: normal;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(0.26rem, 0.56vw, 0.48rem);
+  line-height: 1.25;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ 3-5. 휴대폰
+
+   웹툰 그림체의 규칙으로 그린다.
+     · 윤곽선을 또렷하게 남긴다 (box-shadow 0 0 0 Npx 로 선을 두른다)
+     · 면은 평평하게 칠한다 — 부드러운 그라디언트로 뭉개지 않는다
+     · 빛은 단계로 끊는다 (셀 셰이딩). 유리 반사는 딱 떨어지는 띠 하나.
+   ------------------------------------------------------------------------- */
+
+.rm-spot--phone { left: 46%; top: 63%; width: 4.5%; height: 15.5%; }
+
+.obj-phone { position: absolute; inset: 0; }
+
+/* 본체 = 베젤. 화면은 이 안으로 한 겹 파여 들어간다. */
+.obj-phone-body {
+  position: absolute;
+  inset: 0;
+  /* 책상에 놓여 있으므로 눕힌다. 각을 세게 주면 화면이 안 읽힌다. */
+  /* 세로로 놓여 위쪽이 멀어진다. 각을 세게 주면 다시 납작해지므로 32도.
+     휴대폰은 길쭉해야 휴대폰으로 읽힌다 — 눕히는 각이 비례를 먹는다. */
+  transform: perspective(520px) rotateX(32deg) rotate(-7deg);
+  transform-origin: center bottom;
+  border-radius: 0.5rem;
+  background: #1C1726;
+  /* 바깥 윤곽선 + 바닥에 닿는 그림자 */
+  box-shadow:
+    0 0 0 1.5px #0B0813,
+    var(--cast-md);
+}
+
+/* 금속 테두리에 걸린 빛 — 위/왼쪽만 밝다 */
+.obj-phone-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1.2px 0 rgba(198, 208, 236, 0.7),
+    inset 1.2px 0 0 rgba(150, 162, 196, 0.45),
+    inset 0 -1.2px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* 화면 — 베젤보다 확실히 안쪽에 있어야 "파였다"고 읽힌다 */
+.obj-phone-screen {
+  position: absolute;
+  inset: 4.5% 6% 4.5%;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0;
+  padding: 7% 7% 0;
+  border-radius: 0.24rem;
+  overflow: hidden;
+  /* 밤 화면. 위가 밝고 아래로 가라앉는 두 단계. */
+  background:
+    linear-gradient(180deg, #3C4E8E 0%, #27356A 46%, #161F45 100%);
+  box-shadow: inset 0 0 0 1px rgba(8, 10, 24, 0.9);
+}
+
+/* 상태 표시줄 */
+.obj-phone-status {
+  display: flex;
+  align-items: center;
+  gap: 0.18em;
+  width: 100%;
+  justify-content: space-between;
+}
+.obj-phone-status em {
+  color: #E8EEFF;
+  font-style: normal;
+  font-size: clamp(0.24rem, 0.52vw, 0.44rem);
+  letter-spacing: 0.02em;
+}
+/* 신호 막대 — 높이가 다른 사각형 셋을 그라디언트로 세운다 */
+.obj-phone-bars {
+  width: 16%;
+  height: clamp(0.14rem, 0.3vw, 0.26rem);
+  background:
+    linear-gradient(to top, #E8EEFF 40%, transparent 40%) 0 100% / 26% 100% no-repeat,
+    linear-gradient(to top, #E8EEFF 70%, transparent 70%) 37% 100% / 26% 100% no-repeat,
+    linear-gradient(to top, #E8EEFF 100%, transparent 100%) 74% 100% / 26% 100% no-repeat;
+}
+
+/* 잠금화면의 달 */
+.obj-phone-moon {
+  width: 38%;
+  aspect-ratio: 1;
+  margin-top: 10%;
+  border-radius: 50%;
+  background: #F4ECC6;
+  /* 셀 셰이딩 — 그늘을 부드럽게 깎지 않고 딱 끊는다.
+     번짐(외부 glow)은 얇게만 둔다. 번지면 웹툰이 아니라 사진 흉내가 된다. */
+  box-shadow:
+    inset -0.2em -0.08em 0 rgba(46, 58, 104, 0.6),
+    0 0 0.16rem rgba(244, 236, 198, 0.9);
+}
+
+.obj-phone-card {
+  width: 84%;
+  height: 10%;
+  margin-top: 11%;
+  border-radius: 0.14rem;
+  background:
+    /* 알림 카드 안의 두 줄 — 글자를 쓰지 않고 줄로만 암시한다 */
+    linear-gradient(rgba(30, 40, 78, 0.85) 0 0) 14% 36% / 36% 1.5px no-repeat,
+    linear-gradient(rgba(30, 40, 78, 0.55) 0 0) 14% 64% / 64% 1.5px no-repeat,
+    rgba(226, 234, 255, 0.82);
+  box-shadow: 0 1px 2px rgba(6, 10, 28, 0.5);
+}
+
+/* 화면 아래 홈 바 */
+.obj-phone-bar {
+  width: 40%;
+  height: 1.5px;
+  margin-top: 12%;
+  border-radius: 2px;
+  background: rgba(224, 232, 255, 0.6);
+}
+
+/* 카메라 구멍 — 화면 위쪽 베젤에 뚫린다 */
+.obj-phone-cam {
+  position: absolute;
+  left: 50%;
+  top: 1.6%;
+  width: 8%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #05060C;
+  box-shadow: inset 0 0 0 1px rgba(150, 168, 210, 0.5);
+}
+
+/* 측면 버튼 — 실루엣만 있어도 "기계"로 읽힌다 */
+.obj-phone-btn {
+  position: absolute;
+  right: -1.5px;
+  width: 2px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #8E9AC0, #3A405C);
+}
+.obj-phone-btn--power { top: 22%; height: 11%; }
+.obj-phone-btn--vol   { top: 37%; height: 7%; }
+
+/* 유리에 걸린 빛 — 웹툰의 유리는 번지지 않는다. 경계가 딱 떨어지는 띠 하나. */
+.obj-phone-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  background: linear-gradient(124deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.11) 36%, rgba(255, 255, 255, 0.11) 40%,
+    transparent 40%);
+}
+
+/* --------------------------------------------------- 3-6. 장롱 속 잠긴 상자 */
+
+.rm-spot--box { left: 83.5%; top: 15%; width: 11%; height: 7.5%; }
+
+.obj-lockbox { position: absolute; inset: 0; transform-style: preserve-3d; }
+
+/* 뚜껑 윗면 — 위에서 내려다보이는 면. 앞면보다 밝아야 상자가 선다. */
+.obj-lockbox-lid {
+  position: absolute;
+  left: 0; right: 0;
+  top: 0;
+  height: 34%;
+  transform: rotateX(62deg);
+  transform-origin: bottom center;
+  border-radius: 0.1rem 0.1rem 0 0;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(30, 16, 6, 0.16) 0 1px, transparent 1px 7px),
+    linear-gradient(0deg, #A67C40 0%, #8A6636 55%, #6A4C26 100%);
+  box-shadow: inset 0 0.06rem 0 rgba(255, 232, 180, 0.55);
+}
+.obj-lockbox-body {
+  position: absolute;
+  inset: 22% 0 0;
+  border: 1px solid rgba(255, 214, 150, 0.3);
+  border-radius: 0.14rem;
+  background:
+    /* 표시창이 있는 자리에서 붉은빛이 앞면을 타고 번진다 */
+    radial-gradient(58% 50% at 50% 62%, rgba(255, 58, 34, 0.38), transparent 72%),
+    radial-gradient(70% 90% at 44% 0%, rgba(255, 210, 134, 0.4), transparent 66%),
+    linear-gradient(168deg, #9C7440 0%, #5E4422 55%, #33220E 100%);
+  box-shadow: var(--cast-md), inset 0 0.06rem 0 rgba(255, 232, 180, 0.55);
+}
+/* 상자를 두른 쇠띠 */
+.obj-lockbox-band {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 14%;
+  width: 9%;
+  background: linear-gradient(90deg,
+    rgba(20, 10, 4, 0.5) 0%, rgba(214, 178, 110, 0.75) 38%,
+    rgba(150, 118, 62, 0.8) 62%, rgba(20, 10, 4, 0.6) 100%);
+  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.7);
+}
+.obj-lockbox-band--r { left: auto; right: 14%; }
+/* 시각을 알리는 창 — 장롱 어둠 속에서 이것만 붉게 켜져 있다.
+
+   글자만 빨간 게 아니라 창이 등(燈)이다. box-shadow 두 겹이 장롱 안쪽
+   나무에 붉은 빛을 흘린다 — 가까운 한 겹은 진하게, 먼 한 겹은 옅게.
+   (filter/blur 대신 그림자를 쓴다. 정적이라 한 번만 그려진다) */
+.obj-lockbox-readout {
+  position: absolute;
+  left: 50%; top: 62%;
+  transform: translate(-50%, -50%);
+  padding: 0.12em 0.3em;
+  border-radius: 0.06rem;
+  background: #120100;
+  color: #FF3B2E;
+  font-family: "Courier New", monospace;
+  font-size: clamp(0.42rem, 1vw, 0.88rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  /* 번짐은 좁게, 글자는 밝게 — 붉은빛에 숫자가 먹히지 않을 만큼만 */
+  /* 안쪽은 하얗게 달아오르고 바깥으로 붉게 번진다 — LED 한 알의 생김새 */
+  text-shadow:
+    0 0 0.05rem rgba(255, 196, 180, 0.95),
+    0 0 0.34rem rgba(255, 64, 44, 0.95);
+  box-shadow:
+    0 0 0.4rem rgba(255, 70, 46, 0.75),
+    0 0 1.2rem rgba(255, 40, 22, 0.5),
+    0 0 3rem rgba(255, 26, 12, 0.28);
+}
+.obj-lockbox-latch {
+  position: absolute;
+  left: 50%; top: 30%;
+  width: 14%; height: 22%;
+  transform: translateX(-50%);
+  border-radius: 0.06rem;
+  background: linear-gradient(180deg, #E0C489, #7A5A2A);
+}
+
+/* =========================================================================
+   4. 누른 순간 — 고른 물건만 남고, 그 물건이 열린다
+
+   누르면 세 가지가 함께 일어난다.
+     1) 방이 초점에서 벗어난다 — 벽·가구·나머지 물건이 흐려지고 어두워진다
+     2) 고른 물건만 선명하게 남아 앞으로 나온다
+     3) 그 물건이 열린다 — 봉투라면 봉랍이 떨어지고 덮개가 젖혀지고
+        그 안에서 편지지가 올라온다
+   그리고 나서야 카메라가 그 물건 안으로 들어간다(useDoorTransition 의 hold).
+
+   무대 전체에 filter 를 걸면 고른 물건까지 같이 흐려진다. 그래서 흐림은
+   무대의 자식 층마다 따로 건다 — .is-open 한 칸만 그 목록에서 빠진다.
+   ========================================================================= */
+
+/* 흐림은 무늬가 있는 것에만 건다. 벽·바닥·빛무리는 매끈한 그라디언트라
+   흐려 봐야 눈에 띄는 차이가 없으면서 필터 한 겹씩을 더 쓴다 —
+   그 층들은 어둡게만 한다. 누르는 순간 필터를 열몇 겹 새로 굽는 비용은
+   카메라가 출발하는 바로 그 프레임과 겹쳐서, 첫 한 번이 걸리게 만든다. */
+.roomscene.is-opening .roomscene-stage > :not(.roomscene-spots):not(.roomscene-grain) {
+  opacity: 0.42;
+  transition: opacity 0.5s ease;
+}
+.roomscene.is-opening .rm-closet,
+.roomscene.is-opening .rm-desk,
+.roomscene.is-opening .rm-lamp,
+.roomscene.is-opening .rm-plant,
+.roomscene.is-opening .rm-chair,
+.roomscene.is-opening .rm-spot:not(.is-open) {
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+}
+
+/* 카메라가 본격적으로 다가가면 방은 빠르게 걷힌다. 6.5 배로 커지는 동안
+   방의 층들을 매 프레임 다시 굽는 게 이 장면에서 가장 비싼 일이라,
+   그 전에 투명해져서 아예 그리지 않게 만든다.
+
+   ease-in 이면 앞 절반을 거의 불투명하게 버틴다 — 하필 그 구간이 배율이
+   붙기 시작하는 구간이라, 가장 비싼 프레임들을 고스란히 다 그린다.
+   ease-out 으로 먼저 떨어뜨린다. 입자(grain)도 여기서는 같이 걷는다 —
+   화면을 덮는 한 겹이라 확대되는 동안 값이 제일 비싸다. */
+.roomscene.is-leaving .roomscene-stage > :not(.roomscene-spots),
+.roomscene.is-leaving .rm-spot:not(.is-open) {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+/* 고른 물건은 방의 그늘(비네트) 위로 올라온다. 입자(.roomscene-grain)는
+   DOM 에서 뒤에 있으므로 같은 층이어도 그대로 맨 위에 남는다 —
+   장면 전체를 한 재질로 묶는 겹이라 여기서도 벗기지 않는다. */
+.roomscene.is-opening .roomscene-spots { z-index: 11; }
+
+.rm-spot.is-open {
+  z-index: 60;
+  transform: translateY(-0.55rem) scale(1.08);
+  filter: drop-shadow(0 0 2.2rem rgba(255, 231, 122, 0.9));
+  transition: transform 0.72s var(--ease-camera);
+}
+/* 열리는 동안 이름표와 숨소리는 물러난다 — 이제 물건 자체가 말한다 */
+.rm-spot.is-open .rm-spot-tag,
+.rm-spot.is-open::after { opacity: 0; }
+
+/* 봉투는 여는 동작이 길어서, 앞으로 나오는 것도 그만큼 천천히 나온다 */
+.rm-spot--letter.is-open { transition-duration: 0.95s; }
+
+/* ------------------------------------------------------------ 4-1. 편지
+
+   봉랍이 떨어진다 → 덮개가 윗변을 축으로 젖혀진다 → 편지지가 올라온다.
+   셋이 조금씩 겹쳐 일어나야 "열린다" 는 한 동작으로 읽힌다.
+
+   여기만 다른 물건보다 느리다. 세 동작이 차례로 이어지는 유일한 물건이라
+   같은 속도로 돌리면 서둘러 뜯는 것처럼 보인다. 대신 카메라가 이어받는
+   시점도 같이 미뤄 둔다(RoomScene.jsx 의 HOLD_BY_KIND) — 편지지가 아직
+   올라오는 중에 카메라가 들어와야 한 동작으로 이어진다.
+   ------------------------------------------------------------------------- */
+
+/* 봉투 안에 들어 있는 편지지. 평소엔 투명해서 보이지 않는다. */
+.obj-letter-sheet {
+  position: absolute;
+  left: 7%; right: 7%;
+  top: 8%;
+  z-index: 2; /* 덮개보다 위로 나온다 */
+  height: 84%;
+  border-radius: 0.05rem;
+  /* 줄 간격은 봉투 크기를 따라가야 하므로 % 로 긋는다 */
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 25%, rgba(122, 98, 52, 0.28) 25% 26.4%),
+    linear-gradient(176deg, #FFFBEE 0%, #F6ECD2 62%, #E7D9B4 100%);
+  box-shadow: 0 0.12rem 0.32rem rgba(60, 44, 18, 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.rm-spot--letter.is-open .obj-letter-sheet {
+  animation: letter-sheet 0.88s 0.4s cubic-bezier(0.22, 0.86, 0.3, 1) forwards;
+}
+@keyframes letter-sheet {
+  from { opacity: 0; transform: translateY(18%) scale(0.95); }
+  to   { opacity: 1; transform: translateY(-56%) scale(1.06); }
+}
+
+/* 덮개는 윗변을 축으로 뒤로 넘어간다. 봉투 몸통은 preserve-3d 가 아니므로
+   회전에 깊이를 주려면 perspective() 를 이 요소에 직접 건다. */
+.obj-letter-flap { transform-origin: 50% 0; }
+.rm-spot--letter.is-open .obj-letter-flap {
+  animation: letter-flap 0.78s 0.12s cubic-bezier(0.34, 0.82, 0.36, 1) forwards;
+}
+@keyframes letter-flap {
+  from { transform: perspective(420px) rotateX(0deg); }
+  to   { transform: perspective(420px) rotateX(-164deg); }
+}
+
+/* 봉랍은 덮개가 움직이기 직전에 떨어져 나간다 */
+.rm-spot--letter.is-open .obj-letter-seal {
+  animation: letter-seal 0.4s ease-in forwards;
+}
+@keyframes letter-seal {
+  to { opacity: 0; transform: translate(-46%, -14%) rotate(-22deg) scale(0.72); }
+}
+
+/* -------------------------------------------------------- 4-2. 사용설명서 */
+
+/* 펼칠 때 왼쪽으로 넘어가는 낱장. 넘어간 뒤에는 사라진다 —
+   남아 있으면 없던 종이가 책 왼쪽에 한 장 더 생긴 것처럼 보인다. */
+.obj-manual-leaf {
+  position: absolute;
+  left: 50%; right: 0;
+  top: 0; bottom: 0;
+  z-index: 2;
+  transform-origin: left center;
+  background: linear-gradient(168deg, #F4E8C8 0%, #E3D4AC 60%, #CDBA8E 100%);
+  box-shadow: -0.1rem 0 0.3rem rgba(80, 60, 26, 0.45);
+  opacity: 0;
+  pointer-events: none;
+}
+.rm-spot--manual.is-open .obj-manual-leaf {
+  animation: manual-leaf 0.56s 0.1s cubic-bezier(0.3, 0.8, 0.35, 1) forwards;
+}
+@keyframes manual-leaf {
+  0%   { opacity: 1; transform: perspective(520px) rotateY(0deg); }
+  96%  { opacity: 1; transform: perspective(520px) rotateY(-166deg); }
+  100% { opacity: 0; transform: perspective(520px) rotateY(-166deg); }
+}
+/* 책이 눈높이로 들린다 — 눕힌 각(34도)을 풀어 표지가 읽히게 한다 */
+.rm-spot--manual.is-open .obj-manual-page {
+  animation: manual-open 0.66s cubic-bezier(0.3, 0.8, 0.35, 1) forwards;
+}
+@keyframes manual-open {
+  to { transform: perspective(460px) rotateX(12deg) rotate(0deg) scale(1.08); }
+}
+
+/* ---------------------------------------------------------- 4-3. 휴대폰 */
+
+.rm-spot--phone.is-open .obj-phone-body {
+  animation: phone-wake 0.66s cubic-bezier(0.3, 0.8, 0.35, 1) forwards;
+}
+@keyframes phone-wake {
+  to { transform: perspective(520px) rotateX(8deg) rotate(-3deg) scale(1.1); }
+}
+/* 화면이 깨어난다 — 켜지는 건 밝기 한 단계가 아니라 두 단계다 */
+.rm-spot--phone.is-open .obj-phone-screen {
+  animation: phone-screen 0.66s ease-out forwards;
+}
+@keyframes phone-screen {
+  0%   { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* ------------------------------------------------------ 4-4. 잠긴 상자 */
+
+/* 뚜껑이 열린 틈으로 새어 나오는 빛. 뚜껑 위·몸통 아래에 깔린다. */
+.obj-lockbox-inside {
+  position: absolute;
+  left: 6%; right: 6%;
+  top: 8%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 100%,
+    rgba(255, 232, 166, 0.95), rgba(255, 176, 70, 0.38) 46%, transparent 74%);
+  filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+}
+/* 걸쇠가 먼저 풀리고, 그다음 뚜껑이 넘어간다 */
+.rm-spot--box.is-open .obj-lockbox-latch {
+  animation: box-latch 0.24s ease-in forwards;
+}
+@keyframes box-latch {
+  to { opacity: 0; transform: translateX(-50%) translateY(-42%) rotate(-26deg); }
+}
+.rm-spot--box.is-open .obj-lockbox-lid {
+  animation: box-lid 0.56s 0.16s cubic-bezier(0.3, 0.85, 0.35, 1) forwards;
+}
+@keyframes box-lid {
+  from { transform: rotateX(62deg); }
+  to   { transform: rotateX(148deg); }
+}
+.rm-spot--box.is-open .obj-lockbox-inside {
+  animation: box-light 0.5s 0.24s ease-out forwards;
+}
+@keyframes box-light { to { opacity: 1; } }
+.rm-spot--box.is-open .obj-lockbox-readout {
+  animation: box-readout 0.5s ease-out forwards;
+}
+@keyframes box-readout {
+  to {
+    color: #FFD8D0;
+    text-shadow: 0 0 0.9rem rgba(255, 96, 70, 1);
+    box-shadow: 0 0 1.1rem rgba(255, 60, 40, 0.9), 0 0 2.6rem rgba(255, 40, 24, 0.5);
+  }
+}
+
+/* -------------------------------------------------------- 4-5. 벽의 액자
+
+   여기만 "물건이 열린다" 가 아니라 "사진 안으로 들어간다".
+
+   액자를 여는 동작은 없다 — 대신 큰 액자 한 점이 앞으로 나오면서 테와
+   매트와 유리가 걷히고, 남은 사진이 화면을 채운다. 나머지 세 점은 뒤로
+   물러난다. 카메라도 이 한 점을 향한다(RoomScene 의 onClick 이 카메라
+   대상으로 .obj-art-frame--motto 를 넘긴다).
+   ------------------------------------------------------------------------- */
+
+/* 큰 액자가 다가오며 테와 매트가 걷히고 사진만 남는다.
+
+   테(border-width)와 여백(padding)을 0.66초에 걸쳐 줄이면 프레임마다 다시
+   배치해야 하고, 매트 안의 사진은 그때마다 새 크기로 다시 그려진다 —
+   이 장면에서 유일하게 남아 있던 "매 프레임 레이아웃"이었다.
+   그래서 테와 여백은 누르는 순간 한 번에 걷고, 움직임은 transform 이 맡는다. */
+.rm-spot--frames.is-open .obj-art-frame--motto {
+  z-index: 3;
+  padding: 0;
+  border-width: 0;
+  animation: art-dive 0.66s cubic-bezier(0.3, 0.8, 0.35, 1) forwards;
+}
+@keyframes art-dive {
+  from { transform: rotate(-0.6deg) scale(1); }
+  to   { transform: rotate(0deg)    scale(2.3); }
+}
+/* 매트(그림을 두른 종이 테두리)도 같이 걷힌다 */
+.rm-spot--frames.is-open .obj-art-frame--motto .obj-art-mat {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+/* 유리와 액자 옆면은 사진 앞을 가리는 것들이다 — 먼저 사라진다 */
+.rm-spot--frames.is-open .obj-art-frame--motto .obj-art-glass,
+.rm-spot--frames.is-open .obj-art-frame--motto .obj-art-side {
+  animation: art-clear 0.34s ease forwards;
+}
+@keyframes art-clear { to { opacity: 0; } }
+
+/* 사진 위에 파여 있던 그늘도 같이 걷는다 */
+.rm-spot--frames.is-open .obj-art-frame--motto .obj-art-img,
+.rm-spot--frames.is-open .obj-art-frame--motto .obj-art-empty {
+  box-shadow: none;
+}
+
+/* 나머지 세 점은 뒤로 물러난다. 각자 자기 기울기(rotate)를 가지고 있어서
+   transform 은 건드리지 않고 흐림과 투명도로만 물린다. */
+.rm-spot--frames.is-open .obj-art-frame:not(.obj-art-frame--motto) {
+  animation: art-recede 0.34s ease forwards;
+}
+@keyframes art-recede { to { opacity: 0; } }
+
+/* ---------------------------------------------- 4-6. 줄에 매달린 쪽지 */
+
+/* 왼쪽부터 한 장씩 펄럭인다 — --i 는 .obj-clipnote 에서 물려받는다 */
+.rm-spot--string.is-open .obj-clipnote-paper {
+  animation: note-flutter 0.66s calc(var(--i) * 48ms)
+             cubic-bezier(0.3, 0.8, 0.35, 1) forwards;
+}
+@keyframes note-flutter {
+  0%   { transform: rotate(0deg)  translateY(0); }
+  45%  { transform: rotate(-5deg) translateY(-9%); }
+  100% { transform: rotate(2deg)  translateY(-3%); }
+}
+
+/* =========================================================================
+   5. 표지와 안내
+   ========================================================================= */
+
+/* ---- 벽의 조명 스위치 — 방 전체에서 나가는 유일한 자리 ----
+
+   뒷벽 오른쪽, 몰딩 위. 물건(.rm-spot)들과 같은 어법이지만 빛나지 않는다 —
+   찾으면 보이되 먼저 눈에 띄지는 않아야 한다. */
+.rm-lightswitch {
+  position: absolute;
+  z-index: 12;
+  left: 71.5%;
+  top: 36%;
+  width: 2.2%;
+  height: 3.6%;
+  padding: 0.18rem;
+  border: 1px solid rgba(255, 214, 150, 0.2);
+  border-radius: 0.14rem;
+  background: linear-gradient(170deg, rgba(46, 30, 72, 0.95), rgba(20, 11, 36, 0.95));
+  box-shadow: 0 0.2rem 0.5rem rgba(4, 2, 10, 0.6), var(--bevel-up);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.25s ease, border-color 0.25s ease;
+}
+.rm-lightswitch:hover,
+.rm-lightswitch:focus-visible {
+  opacity: 1;
+  border-color: rgba(255, 216, 77, 0.6);
+}
+
+/* 딸깍이. 눌러 둔 쪽(위)이 빛을 받는다. */
+.rm-lightswitch-toggle {
+  display: block;
+  width: 100%;
+  height: 58%;
+  border-radius: 0.1rem;
+  background: linear-gradient(180deg, rgba(255, 232, 178, 0.5), rgba(120, 92, 46, 0.35));
+  transition: transform 0.18s ease;
+}
+.rm-lightswitch:hover .rm-lightswitch-toggle,
+.rm-lightswitch:focus-visible .rm-lightswitch-toggle {
+  transform: translateY(42%);
+}
+
+/* 이름표는 물건들과 같은 모양. 벽 오른쪽이라 왼쪽에 붙인다. */
+.rm-lightswitch-tag {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 0.6rem);
+  padding: 0.36rem 0.6rem;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: rgba(16, 8, 30, 0.95);
+  box-shadow: 0 0.5rem 1.6rem rgba(4, 2, 10, 0.75);
+  color: var(--c-faint);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-50%) translateX(0.4rem);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+.rm-lightswitch:hover .rm-lightswitch-tag,
+.rm-lightswitch:focus-visible .rm-lightswitch-tag {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* 광원 쪽 공기. 빛이 먼지에 걸려 뿌옇게 번지는 자리다.
+   이게 없으면 빛이 표면에만 얹히고 방 안을 채우지 않는다. */
+.roomscene-haze {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  background: radial-gradient(34% 40% at 19% 50%,
+    rgba(255, 196, 120, 0.13), rgba(255, 180, 100, 0.04) 46%, transparent 72%);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+}
+
+/* 모서리 그늘 — 가운데 책상으로 눈이 모이게.
+   검정이 아니라 식은 보라로 눌러야 그늘이 색을 갖는다. */
+.roomscene-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background:
+    radial-gradient(74% 82% at 34% 58%, transparent 30%, rgba(16, 7, 32, 0.5) 70%, rgba(4, 1, 10, 0.9) 100%);
+  box-shadow: inset 0 0 6rem 1rem rgba(4, 1, 10, 0.75);
+}
+/* 장롱 안 붉은 등만은 이 그늘 위로 새어 나온다.
+
+   물건들(.roomscene-spots, z-index 8)은 그늘(10) 아래에 깔린다. 상자는 하필
+   그늘이 가장 짙은 오른쪽 위 구석이라 표시창 빛의 4분의 3이 깎여 나간다 —
+   불빛이 아니라 어두운 글씨로 읽히는 이유다. 그래서 등불 한 점만 여기 얹는다.
+   자리는 .rm-spot--box 안 표시창의 중심(left 83.5% + 5.5%, top 15% + 5.3%). */
+.roomscene-vignette::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(7.5% 13% at 89% 20.3%,
+    rgba(255, 58, 34, 0.05) 22%,
+    rgba(255, 54, 30, 0.19) 45%,
+    rgba(255, 38, 20, 0.1) 62%,
+    rgba(255, 30, 14, 0.04) 78%,
+    transparent 92%);
+}
+
+/* 화면 전체의 입자.
+   재질마다 입자를 따로 넣어도, 마지막에 한 겹을 전체에 덮어야 각 물건이
+   "따로 그린 그림"이 아니라 "한 장면 안의 물건"으로 묶인다. */
+.roomscene-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.055;
+}
+
+/* =========================================================================
+   6. 좁은 화면 · 연출 끄기
+   ========================================================================= */
+
+@media (max-width: 860px) {
+  .rm-spot-tag { padding: 0.32rem 0.52rem; }
+  .rm-spot-tag strong { font-size: 0.7rem; }
+  .rm-spot-tag small { display: none; }
+
+  /* 이름표가 화면 밖으로 나가지 않게, 좁은 화면에서는 물건 아래에 붙인다 */
+  .rm-spot-tag,
+  .rm-spot.is-left .rm-spot-tag {
+    left: 50%;
+    right: auto;
+    top: calc(100% + 0.4rem);
+    text-align: center;
+    transform: translateX(-50%) translateY(-0.3rem);
+  }
+  .rm-spot.is-near .rm-spot-tag,
+  .rm-spot:focus-visible .rm-spot-tag { transform: translateX(-50%) translateY(0); }
+
+}
+

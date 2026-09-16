@@ -24,12 +24,10 @@ export default function Prologue({ onEnter }) {
   }, []);
 
   // 대답 버튼이 다 올라온 다음에야 포커스를 준다.
-  // 연출을 끈 사용자에게는 처음부터 다 보이므로 기다리지 않는다.
   useEffect(() => {
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const id = window.setTimeout(() => {
       enterRef.current?.focus({ preventScroll: true });
-    }, still ? 60 : 1900);
+    }, 1900);
     return () => window.clearTimeout(id);
   }, []);
 

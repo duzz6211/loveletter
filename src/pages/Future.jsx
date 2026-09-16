@@ -6,26 +6,17 @@
    다 되면 다시 읽어와야 내용이 내려온다 — 타이머가 0에 닿는 순간 refetch 한다.
    ========================================================================= */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import RoomShell from "../components/room/RoomShell.jsx";
 import DataNotice from "../components/DataNotice.jsx";
 import Empty from "../components/Empty.jsx";
 import FuseTimer, { DAY } from "../components/room/FuseTimer.jsx";
 import useCollection from "../lib/useCollection.js";
+import { useTick } from "../lib/motion.js";
 import { formatDate, toParagraphs } from "../lib/content.js";
 import { ROOM_BY_PATH } from "../data/rooms.js";
 
 const ROOM = ROOM_BY_PATH["/future"];
-
-/** 초침 하나로 방 전체를 움직인다 */
-function useTick() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return now;
-}
 
 export default function Future() {
   const { loading, rows, notice, refetch } = useCollection("future");

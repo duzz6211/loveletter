@@ -1,11 +1,11 @@
 /* =========================================================================
    Gate.jsx — 마지막 봉인
 
-   처음 만난 날은 세 번째 벽에서 이미 받았다. 그래서 보통은 아무것도 묻지 않고,
+   사귄 날은 세 번째 벽에서 이미 받았다. 그래서 보통은 아무것도 묻지 않고,
    그 날짜로 조용히 봉인을 열고 아카이브로 넘어간다.
 
    되물음(입력칸)은 예외용이다. 들고 온 날짜가 없거나 그 날짜로 열리지 않는
-   상황 — 예를 들어 배포된 VITE_GATE_DATE 가 중간에 바뀐 경우 — 에만 나온다.
+   상황에만 나온다.
 
    ⚠ 서버가 없으므로 판정은 브라우저 안에서 한다(lib/auth.js 의 주의사항 참고).
    ========================================================================= */
@@ -17,7 +17,7 @@ import { lockedSeconds, ARCHIVE_PATH } from "../lib/auth.js";
 import { useSession } from "../session/SessionProvider.jsx";
 
 export default function Gate({ date = "" }) {
-  const { signIn, configured } = useSession();
+  const { signIn } = useSession();
   const navigate = useNavigate();
 
   /** "unsealing" 들고 온 날짜로 여는 중 | "asking" 되물어야 함 */
@@ -142,10 +142,6 @@ export default function Gate({ date = "" }) {
         </p>
       ) : (
         <>
-          {!configured && (
-            <p className="gate-demo" role="note">{GATE_COPY.openGate}</p>
-          )}
-
           {/* name 속성을 주지 않는다 — 스크립트가 실패해도 날짜가 URL 쿼리로 새지 않게 */}
           <form className="gate-form" id="gateForm" onSubmit={handleSubmit} noValidate autoComplete="off">
             <label htmlFor="gateInput">{GATE_COPY.label}</label>

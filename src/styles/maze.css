@@ -34,7 +34,6 @@
   transform-origin: 50% 50%;
   transform: translate(var(--cam-x, 0px), var(--cam-y, 0px)) scale(var(--cam-z, 1));
   transition: transform var(--t-camera) var(--ease-camera),
-              filter var(--t-camera) var(--ease-camera),
               opacity 0.5s ease;
   will-change: transform;
 }
@@ -44,15 +43,25 @@
 .stage { animation: stage-arrive 0.7s ease; }
 @keyframes stage-arrive { from { opacity: 0; } to { opacity: 1; } }
 
-/* 벽판 앞에 서 있는 동안 배경은 초점에서 밀려난다 */
-.maze.is-approaching .stage { filter: blur(2.5px) brightness(0.5) saturate(0.85); }
+/* 벽판 앞에 서 있는 동안 배경은 초점에서 밀려난다.
+   filter 로 흐리면 그 0.9초 동안 화면 전체를 매 프레임 다시 굽는다 —
+   덮는 겹 하나의 opacity 로 같은 말을 한다. */
+.stage::after {
+  content: "";
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  background: rgba(6, 3, 14, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-camera) var(--ease-camera);
+}
+.maze.is-approaching .stage::after { opacity: 1; }
 
 /* 문 안으로 전진 */
 .maze.is-entering .stage {
   transition: transform var(--t-enter) cubic-bezier(0.55, 0, 0.85, 0.35),
-              filter var(--t-enter) ease-in,
               opacity var(--t-enter) ease-in;
-  filter: brightness(2.4) saturate(0.5);
   opacity: 0;
 }
 
@@ -134,7 +143,7 @@
 
 /* 문 너머에서 새어 나오는 노란빛 — 뒤로 물러난 면 위에서 차오른다 */
 .maze.is-door-open .door-light::after { opacity: 1; }
-.maze.is-entering .door-light::after { opacity: 1; filter: brightness(1.6); }
+.maze.is-entering .door-light::after { opacity: 1; }
 
 .maze.is-door-open .door { --open: -104deg; }
 
@@ -627,8 +636,20 @@
 .prologue-wait:hover,
 .prologue-wait:focus-visible { color: var(--c-ink); border-color: #8A6DB0; }
 
-/* 기다리겠다고 하면 문을 닫지 않고, 입장하기 쪽이 조용히 숨을 쉰다 */
-.prologue.is-waiting .prologue-enter { animation: hint-pulse 1.8s ease-in-out infinite; }
+/* 기다리겠다고 하면 문을 닫지 않고, 입장하기 쪽이 조용히 숨을 쉰다.
+   box-shadow 를 직접 흔들면 매 프레임 다시 칠해야 한다. 빛은 겹 하나에 붙박아
+   두고 그 겹의 투명도만 흔든다 — 이건 합성만 다시 하면 된다. */
+.prologue.is-waiting .prologue-enter { position: relative; }
+.prologue.is-waiting .prologue-enter::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(255, 216, 77, 0.75), 0 0 2.6rem rgba(255, 216, 77, 0.55);
+  animation: glow-breathe 1.8s ease-in-out infinite;
+}
+@keyframes glow-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 
 .prologue-reply {
   min-height: 1.8rem;
@@ -792,47 +813,3 @@
   .prologue-ask { margin-bottom: var(--sp-3); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .maze.is-approaching .stage { filter: brightness(0.5) !important; }
-  .maze.is-entering .stage { opacity: 0; }
-  /* 한 겹씩 떠오르는 연출은 접고, 표지를 처음부터 그대로 보여준다 */
-  .prologue { transition: none; }
-  .prologue-seal,
-  .prologue-kicker,
-  .prologue h1,
-  .prologue-rule,
-  .prologue-ask,
-  .prologue-actions { opacity: 1; animation: none !important; }
-  .prologue.is-waiting .prologue-enter { animation: none !important; border-color: var(--c-gold-glow); }
-}
-
-/* ---- 봉인 날짜를 안 정했을 때 나오는 안내 ---- */
-.gate-demo {
-  margin: 0 0 var(--sp-2);
-  padding: 0.5rem 0.8rem;
-  border: 1px dashed rgba(255, 216, 77, 0.4);
-  border-radius: var(--radius);
-  color: var(--c-muted);
-  font-family: var(--f-ui);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  word-break: keep-all;
-}
-
-/* ---- 개발 빌드에서만 보이는 건너뛰기 버튼 ---- */
-.demo-skip {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 40;
-  padding: 0.5rem 0.85rem;
-  border: 1px dashed rgba(255, 216, 77, 0.45);
-  border-radius: var(--radius);
-  background: rgba(8, 4, 15, 0.8);
-  color: var(--c-muted);
-  font-family: var(--f-ui);
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-}
-.demo-skip:hover { color: var(--c-gold); border-color: var(--c-gold); }

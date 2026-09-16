@@ -2,10 +2,9 @@
    auth.js — 마지막 봉인
 
    ⚠ 이건 인증이 아니다. 서버가 없으므로 판정도 브라우저 안에서 한다.
-     정답 날짜는 빌드할 때 번들에 박히고, 개발자 도구를 열면 찾을 수 있다.
+     정답 날짜는 번들에 그대로 박히고, 개발자 도구를 열면 찾을 수 있다.
      "아무나 실수로 들어오지 않게 하는 커튼"이지 자물쇠가 아니다.
-     진짜로 잠가야 하는 내용이면 Supabase 같은 서버가 필요하다
-     (supabase/schema.sql 에 그 구성이 남아 있다).
+     진짜로 잠가야 하는 내용이면 서버가 필요하다.
 
    그래도 시도 제한과 최소 지연은 그대로 둔다. 링크를 받은 사람이
    생일·기념일을 몇 번 찍어 보는 정도는 막아 준다.
@@ -16,15 +15,8 @@ import { readSession, startSession, endSession } from "./session.js";
 export const MAZE_PATH = "/";
 export const ARCHIVE_PATH = "/archive";
 
-/** 봉인을 열 날짜(YYYYMMDD). 비워 두면 형식만 맞는 날짜를 전부 통과시킨다. */
-export const GATE_DATE = String(import.meta.env.VITE_GATE_DATE ?? "")
-  .replace(/\D/g, "")
-  .slice(0, 8);
-
-/** 날짜가 정해져 있는지 — 정해두지 않으면 봉인이 사실상 열려 있다 */
-export function isGateConfigured() {
-  return GATE_DATE.length === 8;
-}
+/** 봉인을 열 날짜(YYYYMMDD) — 우리가 사귄 날 */
+export const GATE_DATE = "20250902";
 
 /* ---------------------------------------------------------------- 날짜 정규화 */
 
@@ -129,7 +121,7 @@ export async function signInWithMeetingDate(rawDate) {
   const entered = normalizeDate(rawDate);
 
   // 형식이 틀린 경우도 오답과 똑같이 다룬다 — 단서를 남기지 않기 위해서다.
-  const passed = entered !== null && (!isGateConfigured() || entered === GATE_DATE);
+  const passed = entered === GATE_DATE;
 
   // 판정이 즉시 끝나므로, 응답 시간으로 형식 오류와 오답을 구분하지 못하도록
   // 항상 같은 만큼 기다린다.

@@ -182,6 +182,3 @@
 /* 앞면 위에 얹히는 것들(번호·문양·손잡이·명패)은 문살보다 조금 앞에 있다 */
 .door3d-face > * { transform: translateZ(0.05rem); }
 
-@media (prefers-reduced-motion: reduce) {
-  .door3d-leaf { transition: none; }
-}

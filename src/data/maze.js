@@ -36,8 +36,8 @@ export const SYMBOLS = ["✦", "✧", "❖", "✵", "✶", "❈", "✹", "✷", 
  * -- kind: "text" --
  * @property {string[]=} accept       받아줄 대답들
  * @property {string=}   placeholder  입력칸 힌트
- * @property {boolean=}  gateDate     처음 만난 날을 묻는 벽(세 번째).
- *                                    accept 대신 VITE_GATE_DATE 로 판정하고,
+ * @property {boolean=}  gateDate     사귄 날을 묻는 벽(세 번째).
+ *                                    accept 대신 GATE_DATE 로 판정하고,
  *                                    통과한 값을 마지막 봉인에 그대로 넘긴다.
  * @property {string=}   inputMode    숫자만 받을 때 "numeric"
  *
@@ -65,10 +65,10 @@ export const WALLS = [
   },
   {
     /* 이 벽이 곧 마지막 봉인이다. 여기서 통과한 날짜를 그대로 들고 가서
-       열 번째 벽을 지난 뒤 세션을 연다. 정답은 .env 의 VITE_GATE_DATE. */
+       열 번째 벽을 지난 뒤 세션을 연다. 정답은 lib/auth.js 의 GATE_DATE. */
     kind: "text",
     gateDate: true,
-    question: "우리가 처음 만난 날을 기억하나요?",
+    question: "우리가 사귄 날은?",
     copy: "여덟 자리 숫자로 적어주세요. 예: 20240101",
     placeholder: "YYYYMMDD",
     inputMode: "numeric",
@@ -178,7 +178,7 @@ export const COPY = {
 
 /**
  * 마지막 화면 문구.
- * 처음 만난 날은 세 번째 벽에서 이미 받았으므로 보통은 다시 묻지 않는다.
+ * 사귄 날은 세 번째 벽에서 이미 받았으므로 보통은 다시 묻지 않는다.
  * form* 문구는 그 날짜를 잃어버렸을 때만 쓰는 되물음용이다.
  */
 export const GATE_COPY = {
@@ -190,7 +190,7 @@ export const GATE_COPY = {
 
   /* ---- 되물음(예외 상황) ---- */
   formLead: "마지막으로 한 번만 더 확인할게요.",
-  label: "우리가 처음 만난 날",
+  label: "우리가 사귄 날",
   placeholder: "YYYY.MM.DD",
   hint: "YYYY.MM.DD 형식으로 입력해주세요.",
   submit: "우리의 이야기 열기",
@@ -198,8 +198,6 @@ export const GATE_COPY = {
   /** 정답을 유추할 수 있는 단서를 주지 않는 단일 실패 문구 */
   failed: "그 날짜로는 마지막 봉인이 열리지 않아요.",
   locked: (seconds) => `잠시 후에 다시 시도해주세요. (${seconds}초)`,
-  /** 봉인 날짜를 아직 안 정했을 때만 보인다 (VITE_GATE_DATE 가 비어 있음) */
-  openGate: "봉인 날짜가 아직 정해지지 않았어요. 형식(YYYY.MM.DD)만 맞으면 열립니다.",
 };
 
 /** 연출 타이밍(ms). maze.css의 --t-* 값과 맞춰 둔다. */

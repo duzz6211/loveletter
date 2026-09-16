@@ -1,53 +1,32 @@
 /* =========================================================================
    ArchiveLayout.jsx — 인증 이후 화면의 공통 뼈대
 
-   아카이브는 더 이상 문서가 아니라 공간이다. 그래서 헤더 메뉴 대신
-   얇은 HUD 하나만 띄우고, 방과 방 사이는 로비의 문으로만 오간다.
+   아카이브는 더 이상 문서가 아니라 공간이다. 머리글도 메뉴도 없고,
+   방과 방 사이는 로비의 문으로만 오간다.
    ========================================================================= */
 
-import { useLocation, useNavigate } from "react-router-dom";
-import { useSession } from "../session/SessionProvider.jsx";
-import { ARCHIVE_PATH, MAZE_PATH } from "../lib/auth.js";
-import { ROOM_BY_PATH } from "../data/rooms.js";
+/* 방 안쪽에서만 쓰는 스타일. 순서는 예전 main.jsx 에 있던 그대로다. */
+import "../styles/rooms.css";
+import "../styles/room-scene.css";
+import "../styles/room-shell.css";
+import "../styles/room-features.css";
+import "../styles/phone-screen.css";
+import "../styles/manual-book.css";
+import "../styles/secret-letter.css";
+import "../styles/archive.css";
+
+import { useLocation } from "react-router-dom";
 
 export default function ArchiveLayout({ children }) {
-  const { signOut } = useSession();
-  const navigate = useNavigate();
   const { pathname } = useLocation();
-
-  const room = ROOM_BY_PATH[pathname] ?? null;
-  const inLobby = pathname === ARCHIVE_PATH;
-
-  async function handleSignOut() {
-    await signOut();
-    navigate(MAZE_PATH, { replace: true });
-  }
 
   return (
     <div className="archive-shell">
       {children}
 
-      <header className="room-hud">
-        <p className="brand">YUNYEONG.COM</p>
-
-        <span className="room-hud-here">
-          {inLobby ? "복도" : room ? room.title : ""}
-        </span>
-
-        {!inLobby && (
-          <button
-            className="hud-button"
-            type="button"
-            onClick={() => navigate(ARCHIVE_PATH)}
-          >
-            복도로
-          </button>
-        )}
-
-        <button className="hud-button" type="button" data-signout onClick={handleSignOut}>
-          나가기
-        </button>
-      </header>
+      {/* 떠나는 화면의 빛을 이어받아 마저 식히는 한 겹.
+          key 가 바뀌어야 다시 재생되므로 경로를 그대로 키로 쓴다. */}
+      <div className="arrive-wash" key={pathname} aria-hidden="true" />
     </div>
   );
 }

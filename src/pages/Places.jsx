@@ -35,7 +35,7 @@ export default function Places() {
   }
 
   return (
-    <RoomShell tone={ROOM.tone} bleed exitLabel="복도">
+    <RoomShell tone={ROOM.tone} bleed>
       <GalleryWalk
         places={rows}
         kicker={ROOM.kicker}

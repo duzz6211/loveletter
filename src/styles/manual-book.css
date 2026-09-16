@@ -1,0 +1,377 @@
+/* =========================================================================
+   manual-book.css — 유냉 사용설명서. 책상에 펼쳐 놓은 한 권.
+
+   방 책상 위의 설명서(room-scene.css 의 4-2)를 누르면 카메라가 그 물건
+   안으로 들어온다. 그래서 여기는 방이 아니라 그 설명서가 펼쳐진 모습이다.
+
+   책으로 보이게 하는 건 종이색이 아니라 부품이다 —
+   묶인 등(골) · 양옆으로 쌓인 낱장의 단면 · 골 쪽으로 말려 들어간 그늘 ·
+   실제로 도는 낱장. 넷 중 하나라도 빠지면 그냥 베이지색 상자 두 개가 된다.
+
+   빛은 방과 같은 규칙으로 왼쪽 위에서 온다.
+   ========================================================================= */
+
+.bk {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(0.8rem, 2.5vh, 1.5rem);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(1rem, 3vh, 2rem) clamp(0.7rem, 3vw, 2rem);
+  overflow: hidden;
+  font-family: var(--f-ui);
+
+  /* 책상 — 스탠드 빛이 왼쪽 위에서 떨어진다 */
+  background:
+    radial-gradient(46% 42% at 34% 26%, rgba(255, 206, 130, 0.2), transparent 72%),
+    radial-gradient(90% 80% at 50% 100%, rgba(20, 9, 36, 0.92), transparent 72%),
+    var(--c-void);
+}
+
+/* ---- 책 한 권 ----------------------------------------------------------
+
+   카메라가 설명서 "안으로" 들어온 직후다. 그러니 이미 크게 들어와 있고
+   제자리로 가라앉으며 멈춘다 — 작게 시작해 커지면 방금 들어온 방향을
+   거꾸로 되감는 셈이라 거기서 전환이 끊겨 보인다(휴대폰과 같은 규칙). */
+
+.bk-book {
+  position: relative;
+  width: min(100%, 58rem, calc((100dvh - 11rem) * 1.42));
+  aspect-ratio: 1.42;
+  filter: drop-shadow(0 1.6rem 3rem rgba(4, 1, 10, 0.75));
+  animation: bk-arrive 0.72s var(--ease-camera) both;
+}
+.bk-book--single {
+  width: min(100%, 27rem, calc((100dvh - 11rem) * 0.7));
+  aspect-ratio: 0.7;
+}
+.bk-book--flat { animation: none; }
+
+@keyframes bk-arrive {
+  from { opacity: 0.5; transform: scale(1.14); }
+  to   { opacity: 1;   transform: scale(1); }
+}
+
+/* 양옆에 쌓인 낱장의 단면. --read(읽은 비율)만큼 왼쪽이 두꺼워지고
+   오른쪽이 얇아진다 — 이 한 겹이 "펼친 종이 두 장"과 "책 한 권"을 가른다. */
+.bk-edge {
+  position: absolute;
+  top: 1.4%;
+  bottom: 1.4%;
+  background:
+    repeating-linear-gradient(90deg,
+      #EBDEBC 0 1px, #C8B68B 1px 2px, #E0D2AC 2px 3px);
+  box-shadow: inset 0 0 0.4rem rgba(90, 68, 28, 0.5);
+}
+.bk-edge--l {
+  right: 100%;
+  width: calc(0.18rem + var(--read, 0) * 0.85rem);
+  border-radius: 0.14rem 0 0 0.14rem;
+}
+.bk-edge--r {
+  left: 100%;
+  width: calc(0.18rem + (1 - var(--read, 0)) * 0.85rem);
+  border-radius: 0 0.14rem 0.14rem 0;
+}
+.bk-book--single .bk-edge { display: none; }
+
+/* ---- 펼친 면 ----------------------------------------------------------- */
+
+.bk-spread {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.24rem;
+  /* 도는 낱장이 깊이를 가지려면 원근이 여기 한 번만 있어야 한다 */
+  perspective: 1800px;
+  perspective-origin: 50% 46%;
+}
+
+/* 가운데 골. 쪽 위에 얹혀야 종이가 등 쪽으로 말려 들어간 것으로 보인다. */
+.bk-gutter {
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  z-index: 3;
+  width: 4%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(72, 52, 18, 0.26) 38%,
+    rgba(44, 30, 10, 0.5) 50%,
+    rgba(72, 52, 18, 0.26) 62%,
+    transparent 100%);
+}
+.bk-book--single .bk-gutter { display: none; }
+
+/* ---- 쪽 하나 ----------------------------------------------------------- */
+
+.bk-page {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  padding: clamp(1.1rem, 3vw, 2.3rem) clamp(0.9rem, 2.6vw, 1.9rem);
+  background: linear-gradient(170deg, #FCF3DB 0%, #F3E6C6 56%, #E4D5AE 100%);
+  color: #33240F;
+  overflow: hidden;
+}
+/* 종이의 결 — 방·편지와 같은 입자를 써야 같은 세계의 종이가 된다 */
+.bk-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.11;
+}
+/* 등에 가까운 쪽이 어둡다. 왼쪽 쪽은 오른쪽 끝이, 오른쪽 쪽은 왼쪽 끝이. */
+.bk-page--l {
+  border-radius: 0.24rem 0 0 0.24rem;
+  box-shadow: inset -1.6rem 0 1.8rem -1.1rem rgba(86, 62, 22, 0.55);
+}
+.bk-page--r {
+  border-radius: 0 0.24rem 0.24rem 0;
+  box-shadow: inset 1.6rem 0 1.8rem -1.1rem rgba(86, 62, 22, 0.55);
+}
+.bk-book--single .bk-page { border-radius: 0.24rem; box-shadow: none; }
+/* 마지막 쪽 뒤의 빈 면 */
+.bk-page.is-blank { background: linear-gradient(170deg, #F6EDD4, #DFD0A7); }
+
+/* 머리말 — 이 쪽이 어느 장(章)인지. 항목마다 여기가 바뀐다. */
+.bk-head {
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(90, 66, 26, 0.32);
+  color: #7A5A24;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+.bk-label {
+  margin: 0 0 0.9rem;
+  font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+.bk-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.bk-body::-webkit-scrollbar { width: 0; }
+.bk-body p {
+  margin: 0 0 0.9rem;
+  font-size: clamp(0.82rem, 1.6vw, 0.94rem);
+  line-height: 1.95;
+  word-break: keep-all;
+}
+.bk-body p:last-child { margin-bottom: 0; }
+
+/* 쪽 번호는 등에서 먼 쪽(바깥)에 찍힌다 — 책이 그렇게 찍힌다 */
+.bk-folio {
+  margin-top: 0.9rem;
+  color: #8A6A30;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+.bk-page--l .bk-folio { align-self: flex-start; }
+.bk-page--r .bk-folio { align-self: flex-end; }
+
+/* ---- 속표지 ------------------------------------------------------------ */
+
+.bk-page--title {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.2rem;
+}
+.bk-imprint {
+  margin: 0 0 1.1rem;
+  color: #8A6A30;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+}
+.bk-booktitle {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+.bk-rule {
+  width: 42%;
+  height: 1px;
+  margin: 1.1rem 0;
+  background: linear-gradient(90deg, transparent, rgba(90, 66, 26, 0.7), transparent);
+}
+.bk-sub {
+  margin: 0;
+  color: #6B4E1E;
+  font-size: 0.78rem;
+  line-height: 1.8;
+  word-break: keep-all;
+}
+.bk-colophon {
+  margin: 1.4rem 0 0;
+  color: #9A7A40;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+}
+
+/* ---- 도는 낱장 ---------------------------------------------------------
+
+   오른쪽 절반을 차지하고 등(왼쪽 모서리)을 축으로 돈다. 앞뒤 두 면이
+   등을 맞대고 있어서, 반쯤 돌면 앞면이 사라지고 뒷면이 나타난다
+   (backface-visibility). 어느 면에 무엇을 싣는지는 AboutYunyeong.jsx 참고. */
+
+.bk-leaf {
+  position: absolute;
+  left: 50%; right: 0;
+  top: 0; bottom: 0;
+  z-index: 4;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  animation: bk-turn 0.56s cubic-bezier(0.42, 0.04, 0.38, 1) forwards;
+}
+.bk-leaf.is-back { animation-name: bk-turn-back; }
+
+@keyframes bk-turn {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(-178deg); }
+}
+@keyframes bk-turn-back {
+  from { transform: rotateY(-178deg); }
+  to   { transform: rotateY(0deg); }
+}
+
+.bk-leaf-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+.bk-leaf-face--front { transform: rotateY(0deg); }
+.bk-leaf-face--back  { transform: rotateY(180deg); }
+
+/* 드는 동안 종이에 그늘이 진다. 이게 없으면 그림이 미끄러지기만 한다. */
+.bk-leaf-face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(40, 26, 8, 0.55), transparent 58%);
+  animation: bk-leaf-shade 0.56s ease both;
+}
+.bk-leaf-face--back::before {
+  background: linear-gradient(270deg, rgba(40, 26, 8, 0.55), transparent 58%);
+}
+@keyframes bk-leaf-shade {
+  0%   { opacity: 0; }
+  55%  { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+
+/* ---- 한 쪽씩 볼 때 — 돌릴 자리가 없으므로 넘겨 들어오게 한다 ---------- */
+
+.bk-single {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+.bk-single[data-dir="1"]  { animation: bk-in-next 0.38s ease both; }
+.bk-single[data-dir="-1"] { animation: bk-in-prev 0.38s ease both; }
+@keyframes bk-in-next {
+  from { opacity: 0; transform: translateX(7%) rotateY(-9deg); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes bk-in-prev {
+  from { opacity: 0; transform: translateX(-7%) rotateY(9deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- 넘기는 손잡이 ------------------------------------------------------ */
+
+.bk-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  font-family: var(--f-ui);
+}
+.bk-turn {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  border: var(--line);
+  border-radius: 50%;
+  background: rgba(20, 12, 34, 0.6);
+  color: var(--c-ink);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.bk-turn:hover:not(:disabled),
+.bk-turn:focus-visible:not(:disabled) {
+  border-color: rgba(255, 216, 77, 0.6);
+  background: rgba(46, 26, 74, 0.72);
+  transform: translateY(-1px);
+}
+.bk-turn:disabled { opacity: 0.32; cursor: default; }
+.bk-turn:focus-visible { outline: none; }
+
+.bk-count {
+  min-width: 5.5rem;
+  color: var(--c-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.bk-count small { color: var(--c-faint); }
+
+.bk-close {
+  margin-left: 0.4rem;
+  padding: 0.42rem 0.85rem;
+  border: var(--line);
+  border-radius: 999px;
+  background: rgba(20, 12, 34, 0.6);
+  color: var(--c-ink);
+  font-family: inherit;
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.bk-close:hover,
+.bk-close:focus-visible {
+  border-color: rgba(255, 216, 77, 0.6);
+  background: rgba(46, 26, 74, 0.72);
+}
+
+.bk > .room-notice { margin: 0; font-size: 0.68rem; }
+
+
+/* 나갈 때는 들어올 때의 반대다 — 눈앞의 것이 뒤로 작아지며 빛에 씻긴다.
+   도착 애니메이션(both)이 끝값을 붙들고 있어서 transition 이 먹지 않으므로,
+   여기서 animation 을 먼저 놓아 준다. 끝값과 기본값이 같아 튀지 않는다. */
+.bk.is-exiting .bk-book {
+  animation: none;
+  transform: scale(0.8);
+  filter: brightness(1.9) saturate(0.5);
+  opacity: 0;
+  transition: transform 0.78s cubic-bezier(0.4, 0, 0.7, 0.62),
+              filter 0.78s ease-in,
+              opacity 0.78s ease-in;
+}
+.bk.is-exiting .bk-nav { opacity: 0; transition: opacity 0.3s ease; }
+

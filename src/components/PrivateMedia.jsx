@@ -22,7 +22,7 @@ export default function PrivateMedia({ path, alt, emptyLabel = "[사진 자리]"
       {isVideo ? (
         <video src={url} controls playsInline onError={() => setFailed(true)} />
       ) : (
-        <img src={url} alt={alt ?? ""} loading="lazy" onError={() => setFailed(true)} />
+        <img src={url} alt={alt ?? ""} loading="lazy" decoding="async" onError={() => setFailed(true)} />
       )}
     </div>
   );

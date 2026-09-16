@@ -27,17 +27,20 @@ const TURN_ANGLE = 26;
 /** 눈앞에서 그림까지 남겨 두는 거리 — 0이면 코앞이라 읽히지 않는다 */
 const VIEW_GAP = 320;
 
-const prefersReducedMotion = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const NARROW = "(max-width: 720px)";
 
 function useNarrow() {
   const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 721
+    () => typeof window !== "undefined" && window.matchMedia(NARROW).matches
   );
+  /* resize 는 끄는 동안 내내 울린다. 경계를 넘을 때만 받으면 된다. */
   useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < 721);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const mq = window.matchMedia(NARROW);
+    const onChange = () => setNarrow(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
   return narrow;
 }
@@ -62,11 +65,9 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
       setAt((current) => {
         const next = Math.min(last, Math.max(0, current + delta));
         if (next === current) return current;
-        if (!prefersReducedMotion()) {
-          setStepping(true);
-          window.clearTimeout(steppingTimer.current);
-          steppingTimer.current = window.setTimeout(() => setStepping(false), 640);
-        }
+        setStepping(true);
+        window.clearTimeout(steppingTimer.current);
+        steppingTimer.current = window.setTimeout(() => setStepping(false), 640);
         return next;
       });
     },
@@ -83,7 +84,9 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
       window.removeEventListener("pointerup", endDrag);
       window.removeEventListener("pointercancel", endDrag);
     };
-  });
+    // endDrag 는 ref 와 setState 만 건드린다 — 한 번만 붙이면 된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* 방향키로도 걷는다 */
   useEffect(() => {
@@ -160,6 +163,8 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
       </div>
 
       <div className="walk-space">
+        {/* 복도 끝(소실점)이 먼저 깔리고, 그 위로 벽·바닥·천장이 온다 */}
+        <div className="walk-far" aria-hidden="true" />
         <div className="walk-wall walk-wall-l" aria-hidden="true" />
         <div className="walk-wall walk-wall-r" aria-hidden="true" />
         <div
@@ -181,6 +186,11 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
             const ahead = index - at;          // 0 = 지금 서 있는 자리
             const onLeft = index % 2 === 0;
             const passed = ahead < 0;
+            /* 눈에 닿는 건 앞쪽 네 칸까지다 — opacity 가 그 뒤로 0이 된다.
+               보이지 않는 칸은 숨겨서 합성에서 빼고, 사진은 그보다 두 칸 더
+               앞서 걸어 둔다. 빨리 걸어도 빈 액자가 스치지 않을 만큼만. */
+            const seen = ahead >= -1 && ahead < 4;
+            const near = ahead >= -1 && ahead <= 6;
 
             return (
               <div
@@ -191,24 +201,28 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
                   "--oz": `${-index * step}px`,
                   "--ory": `${onLeft ? PIECE_ANGLE : -PIECE_ANGLE}deg`,
                   opacity: passed ? 0 : Math.max(0, 1 - ahead * 0.26),
-                  // 이미 지나친 그림은 시야 뒤에 있다 — 그리지 않는다
-                  visibility: ahead < -1 ? "hidden" : "visible",
+                  visibility: seen ? "visible" : "hidden",
                   pointerEvents: ahead > 0 && ahead < 4 ? "auto" : "none",
                 }}
                 onClick={() => { if (ahead > 0) walk(ahead); }}
               >
                 <span className="walk-spot" aria-hidden="true" />
                 <div className="walk-frame">
-                  <PrivateMedia
-                    path={place.photo_path}
-                    alt={place.name ? `${place.name} 사진` : "함께 간 장소 사진"}
-                  />
+                  {near && (
+                    <PrivateMedia
+                      path={place.photo_path}
+                      alt={place.name ? `${place.name} 사진` : "함께 간 장소 사진"}
+                    />
+                  )}
                 </div>
-                <div className="walk-plaque">
-                  <p className="meta">{formatDate(place.visited_on)}</p>
-                  <h3>{place.name ?? "[장소 이름]"}</h3>
-                  {toParagraphs(place.note).map((text, i) => <p key={i}>{text}</p>)}
-                </div>
+                {/* 명판은 적을 말이 있을 때만 건다 — 빈 명판은 벽의 얼룩이다 */}
+                {(place.visited_on || place.name || place.note) && (
+                  <div className="walk-plaque">
+                    <p className="meta">{formatDate(place.visited_on)}</p>
+                    <h3>{place.name}</h3>
+                    {toParagraphs(place.note).map((text, i) => <p key={i}>{text}</p>)}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -218,13 +232,17 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
             style={{
               "--oz": `${-last * step}px`,
               opacity: atEnd ? 1 : Math.max(0, 1 - (last - at) * 0.26),
-              visibility: last - at > 4 ? "hidden" : "visible",
+              visibility: last - at > 6 ? "hidden" : "visible",
             }}
           >
             <h2>여기까지가 지금까지예요</h2>
             <p>다음 칸은 아직 비어 있어요. 같이 채우러 가요.</p>
           </div>
         </div>
+
+        {/* 작품 위에 얹는 공기와 모서리 그늘. 누르는 걸 막지 않는다. */}
+        <div className="walk-air" aria-hidden="true" />
+        <div className="walk-vignette" aria-hidden="true" />
       </div>
 
       <p className="walk-hint">
@@ -257,7 +275,7 @@ export default function GalleryWalk({ places, kicker, title, notice }) {
 
       {/* 화면 낭독기에는 지금 보고 있는 장소를 글로 알려준다 */}
       <p className="sr-only" aria-live="polite">
-        {here ? `${here.name ?? "장소"} — ${formatDate(here.visited_on)}` : "복도 끝에 도착했어요."}
+        {here ? `사진 ${at + 1}` : "복도 끝에 도착했어요."}
       </p>
     </div>
   );

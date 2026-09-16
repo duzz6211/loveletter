@@ -24,18 +24,6 @@
 }
 .button[disabled] { opacity: 0.45; cursor: default; }
 
-.button-quiet {
-  border-color: rgba(199, 184, 219, 0.35);
-  background: transparent;
-  color: var(--c-muted);
-}
-.button-quiet:hover:not([disabled]) {
-  border-color: var(--c-gold);
-  color: var(--c-gold);
-  background: transparent;
-  box-shadow: none;
-}
-
 /* 비공개 사진·영상이 들어가는 자리 */
 .media-slot {
   display: grid;

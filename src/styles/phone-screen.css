@@ -1,0 +1,380 @@
+/* =========================================================================
+   phone-screen.css — 오늘의 말이 놓이는 휴대폰 한 대
+
+   이 화면만 방이 아니다. 방 안의 휴대폰(room-scene.css 의 3-5)을 누르면
+   카메라가 그 물건으로 들어오므로, 도착한 화면은 "그 휴대폰이 확대된 모습"
+   이어야 한다. 그래서 기기를 실제로 한 대 그리고, 그 안에 잠금화면을 깐다.
+
+   휴대폰으로 보이게 하는 건 색이 아니라 부품이다 —
+   테두리(베젤) · 그 안으로 파인 화면 · 아래턱의 홈 버튼 · 상태바.
+   방 안의 작은 휴대폰과 같은 규칙으로 그려야 같은 물건으로 읽힌다.
+   ========================================================================= */
+
+.ph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(1rem, 4vh, 2.4rem) clamp(0.8rem, 4vw, 2rem);
+  overflow: hidden;
+  font-family: var(--f-ui);
+
+  /* 휴대폰을 든 손 주변의 어둠. 방에서 그대로 걸어 나온 어둠이어야 한다. */
+  background:
+    radial-gradient(60% 46% at 50% 44%, rgba(123, 66, 209, 0.24), transparent 72%),
+    radial-gradient(90% 70% at 50% 100%, rgba(20, 9, 36, 0.9), transparent 70%),
+    var(--c-void);
+}
+
+/* ---- 기기 --------------------------------------------------------------
+
+   방에서 카메라가 휴대폰 "안으로" 들어온 직후다. 그러니 기기는 이미 크게
+   들어와 있고, 제자리로 가라앉으며 멈춘다. 작게 시작해 커지면 방금 들어온
+   방향을 거꾸로 되감는 셈이라, 거기서 전환이 두 토막으로 끊겨 보인다.
+   들어올 때의 빛(brightness)도 여기서 마저 식는다. */
+
+.ph-device {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  width: min(100%, calc((100dvh - 7rem) * 0.47), 23rem);
+  aspect-ratio: 9 / 18.4;
+  padding: 0.5rem 0.5rem 0;
+  border-radius: 2.5rem;
+
+  /* 베젤 — 금속 테. 빛은 왼쪽 위에서 온다(tokens.css 의 규칙). */
+  background: linear-gradient(152deg, #2A2237 0%, #14101F 46%, #0A0712 100%);
+  box-shadow:
+    0 0 0 1.5px #060410,
+    inset 0.06rem 0.06rem 0 rgba(255, 244, 189, 0.16),
+    inset -0.06rem -0.06rem 0 rgba(0, 0, 0, 0.7),
+    var(--lift-3),
+    0 0 4rem rgba(123, 66, 209, 0.35);
+  animation: ph-arrive 0.72s var(--ease-camera) both;
+}
+@keyframes ph-arrive {
+  from { opacity: 0.5; transform: scale(1.16); }
+  to   { opacity: 1;   transform: scale(1); }
+}
+
+/* 화면은 베젤 안으로 한 겹 파여 들어간다 */
+.ph-screen {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  border-radius: 2.05rem 2.05rem 0.5rem 0.5rem;
+  overflow: hidden;
+  background: #0C0718;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.9);
+}
+
+/* ---- 배경화면 ---------------------------------------------------------- */
+
+.ph-wall {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(38% 22% at 74% 15%, rgba(255, 244, 189, 0.22), transparent 70%),
+    radial-gradient(90% 55% at 50% 4%, rgba(123, 66, 209, 0.5), transparent 72%),
+    linear-gradient(176deg, #2A1650 0%, #180B2E 46%, #0B0616 100%);
+}
+/* 달 하나 — 배경화면에 초점이 하나는 있어야 사진처럼 읽힌다 */
+.ph-wall::after {
+  content: "";
+  position: absolute;
+  left: 68%; top: 9%;
+  width: 18%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(60% 60% at 36% 32%, #FFF6D6, #E8D08A 58%, #B9975A 100%);
+  box-shadow: 0 0 2.4rem rgba(255, 238, 180, 0.55);
+}
+/* 방과 같은 입자. 이게 있어야 방에서 들고 나온 물건으로 읽힌다. */
+.ph-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.05;
+}
+
+/* ---- 상태바 ------------------------------------------------------------ */
+
+.ph-status {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.35rem 0.2rem;
+  color: rgba(255, 244, 189, 0.92);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ph-status-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+/* 신호 — 막대 넷이 계단으로 선다 */
+.ph-signal {
+  width: 0.72rem;
+  height: 0.5rem;
+  background:
+    linear-gradient(0deg, currentColor, currentColor) 0    100% / 0.12rem 40% no-repeat,
+    linear-gradient(0deg, currentColor, currentColor) 33%  100% / 0.12rem 62% no-repeat,
+    linear-gradient(0deg, currentColor, currentColor) 66%  100% / 0.12rem 82% no-repeat,
+    linear-gradient(0deg, currentColor, currentColor) 100% 100% / 0.12rem 100% no-repeat;
+  opacity: 0.9;
+}
+/* 와이파이 — 부채꼴 하나를 원뿔로 잘라 쓴다 */
+.ph-wifi {
+  width: 0.62rem;
+  height: 0.5rem;
+  border: 0.12rem solid currentColor;
+  border-radius: 50%;
+  clip-path: polygon(50% 100%, 0 30%, 100% 30%);
+  opacity: 0.9;
+}
+/* 배터리 — 몸통과 꼭지, 그리고 남은 만큼의 채움 */
+.ph-batt {
+  position: relative;
+  width: 1.1rem;
+  height: 0.56rem;
+  border: 0.08rem solid currentColor;
+  border-radius: 0.14rem;
+  opacity: 0.9;
+}
+.ph-batt::before {
+  content: "";
+  position: absolute;
+  inset: 0.08rem;
+  right: 32%;
+  border-radius: 0.06rem;
+  background: currentColor;
+}
+.ph-batt::after {
+  content: "";
+  position: absolute;
+  left: 100%; top: 28%;
+  width: 0.1rem; height: 44%;
+  border-radius: 0 0.06rem 0.06rem 0;
+  background: currentColor;
+}
+
+/* ---- 잠금화면 시계 — 지금 시각 ---------------------------------------- */
+
+.ph-lock {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 1.5rem 1rem 1.7rem;
+  text-align: center;
+}
+.ph-clock {
+  color: #FFF8E2;
+  font-size: clamp(2.6rem, 11vw, 3.8rem);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0.1rem 1.4rem rgba(8, 4, 16, 0.75);
+}
+.ph-date {
+  margin: 0;
+  color: rgba(255, 244, 189, 0.82);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-shadow: 0 0.1rem 0.8rem rgba(8, 4, 16, 0.8);
+}
+
+/* ---- 알림 -------------------------------------------------------------- */
+
+.ph-notifs {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  padding: 0 0.7rem 1rem;
+  /* 말이 길면 화면 안에서 스크롤된다 — 기기 밖으로 넘치게 둘 수는 없다.
+     grid 트랙 안에서 줄어들려면 min-height: 0 이 함께 있어야 한다. */
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.ph-notifs::-webkit-scrollbar { width: 0; }
+
+/* 새로고침은 알림 바로 위에 앉는다 — 이 알림에 딸린 손잡이라는 뜻이다 */
+.ph-refresh-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0.15rem;
+}
+.ph-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 244, 189, 0.24);
+  border-radius: 999px;
+  background: rgba(20, 12, 34, 0.78);
+  color: rgba(255, 244, 189, 0.9);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.ph-refresh:hover:not(:disabled),
+.ph-refresh:focus-visible:not(:disabled) {
+  border-color: rgba(255, 216, 77, 0.6);
+  background: rgba(46, 26, 74, 0.7);
+  transform: translateY(-1px);
+}
+.ph-refresh:disabled { opacity: 0.45; cursor: default; }
+.ph-refresh-mark {
+  font-style: normal;
+  font-size: 0.86rem;
+  line-height: 1;
+}
+/* 누르는 동안 한 바퀴 돈다 */
+.ph-refresh:active:not(:disabled) .ph-refresh-mark {
+  animation: ph-spin 0.5s linear;
+}
+@keyframes ph-spin { to { transform: rotate(360deg); } }
+
+/* 알림 한 장 — 잠금화면 위에 얹힌 반투명 카드 */
+.ph-notif {
+  display: grid;
+  gap: 0.34rem;
+  padding: 0.7rem 0.85rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.1rem;
+  background: rgba(38, 24, 62, 0.82);
+  box-shadow: 0 0.6rem 1.6rem rgba(6, 2, 14, 0.5);
+  animation: ph-drop 0.42s var(--ease-camera) both;
+}
+@keyframes ph-drop {
+  from { opacity: 0; transform: translateY(-0.7rem) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)      scale(1); }
+}
+/* 새 알림을 부르는 동안 지금 알림은 위로 걷힌다 */
+.ph-notif.is-leaving {
+  animation: ph-lift 0.26s ease-in forwards;
+}
+@keyframes ph-lift {
+  to { opacity: 0; transform: translateY(-0.6rem) scale(0.97); }
+}
+
+.ph-notif-head {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: rgba(255, 244, 189, 0.78);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+.ph-notif-head strong { font-weight: 600; }
+.ph-notif-head small { margin-left: auto; opacity: 0.7; }
+
+/* 보내는 앱의 아이콘 — 말의 결(tone)에 따라 글자만 바뀐다 */
+.ph-notif-icon {
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 0.34rem;
+  background: linear-gradient(150deg, var(--c-accent), #45217F);
+  box-shadow: inset 0 0.04rem 0 rgba(255, 244, 189, 0.3);
+  color: var(--c-ink);
+  font-style: normal;
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.ph-notif-body {
+  margin: 0;
+  color: #FFF6DC;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+/* db 가 비었을 때의 안내는 알림 아래에 작게 */
+.ph-notifs .room-notice {
+  margin: 0;
+  padding: 0 0.3rem;
+  font-size: 0.66rem;
+}
+
+/* ---- 아래턱과 홈 버튼 --------------------------------------------------
+
+   "아래 홈 버튼을 누르면 빠져나간다" 는 약속이 이 화면의 유일한 출구다.
+   그래서 화면 안의 가는 막대가 아니라, 기기에 실제로 달린 버튼으로 그린다. */
+
+.ph-chin {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem 0 0.55rem;
+}
+.ph-home {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid rgba(255, 244, 189, 0.22);
+  border-radius: 50%;
+  /* 눌리는 자리라 가운데가 살짝 파여 있다 */
+  background: radial-gradient(70% 70% at 50% 30%, #241C34, #0D0916 78%);
+  box-shadow:
+    inset 0 0.08rem 0.2rem rgba(0, 0, 0, 0.9),
+    inset 0 -0.06rem 0 rgba(255, 244, 189, 0.12);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+/* 버튼 안의 둥근 사각형 — 홈 버튼의 표식 */
+.ph-home i {
+  width: 0.78rem;
+  height: 0.78rem;
+  border: 1.5px solid rgba(255, 244, 189, 0.55);
+  border-radius: 0.2rem;
+}
+.ph-home:hover,
+.ph-home:focus-visible {
+  border-color: rgba(255, 216, 77, 0.65);
+  box-shadow:
+    inset 0 0.08rem 0.2rem rgba(0, 0, 0, 0.9),
+    0 0 1.1rem rgba(255, 216, 77, 0.45);
+}
+.ph-home:active { transform: scale(0.94); }
+.ph-home:focus-visible { outline: none; }
+
+
+/* 나갈 때는 들어올 때의 반대다 — 눈앞의 것이 뒤로 작아지며 빛에 씻긴다.
+   도착 애니메이션(both)이 끝값을 붙들고 있어서 transition 이 먹지 않으므로,
+   여기서 animation 을 먼저 놓아 준다. 끝값과 기본값이 같아 튀지 않는다. */
+.ph.is-exiting .ph-device {
+  animation: none;
+  transform: scale(0.8);
+  filter: brightness(1.9) saturate(0.5);
+  opacity: 0;
+  transition: transform 0.78s cubic-bezier(0.4, 0, 0.7, 0.62),
+              filter 0.78s ease-in,
+              opacity 0.78s ease-in;
+}
+
+/* ---- 좁은 화면 · 연출 끄기 --------------------------------------------- */
+
+@media (max-width: 480px) {
+  .ph { padding-top: 3.9rem; }
+  .ph-device { border-radius: 2.1rem; }
+  .ph-screen { border-radius: 1.7rem 1.7rem 0.5rem 0.5rem; }
+}
+

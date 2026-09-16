@@ -150,11 +150,39 @@ a:hover { color: var(--c-gold-glow); }
   letter-spacing: var(--ls-kicker);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* =========================================================================
+   재질 — 화면을 "그림"이 아니라 "물건"으로 보이게 하는 것들
+
+   평평한 그라디언트만 쌓으면 아무리 색을 잘 골라도 벡터 도형처럼 보인다.
+   실제로 눈이 재질을 읽는 단서는 세 가지다.
+
+     1) 입자(grain)  — 어떤 표면에도 미세한 얼룩이 있다. 매끈하면 가짜다.
+     2) 그림자 두 겹 — 물건이 바닥에 닿는 자리의 좁고 진한 그림자와,
+                       그 둘레로 넓게 퍼지는 옅은 그림자는 서로 다른 그림자다.
+     3) 빛의 온도    — 그늘은 어두워지기만 하는 게 아니라 차가워진다(보라·파랑).
+                       밝은 곳은 따뜻해진다(호박색). 명도만 건드리면 납작해진다.
+
+   아래는 그 세 가지를 프로젝트 전체에서 같은 값으로 쓰기 위한 토큰이다.
+   ========================================================================= */
+:root {
+  /* 입자. feTurbulence 한 장을 인라인으로 굽는다 — 파일도, 요청도 없다. */
+  /* ⚠ 혼합 모드로 얹지 않는다.
+     어두운 화면에서 overlay/soft-light 는 중간 회색 노이즈를 거의 그대로
+     먹어 버려서 아무것도 안 보인다. 그래서 대비를 세게 올린 흑백 노이즈를
+     만들어 두고, 아주 낮은 opacity 로 그냥 덮는다. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='2.2' intercept='-0.55'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* 그늘의 색. 검정이 아니라 식은 보라다. */
+  --shade-1: rgba(14, 6, 26, 0.55);
+  --shade-2: rgba(10, 4, 20, 0.75);
+  --shade-3: rgba(6, 2, 14, 0.9);
+
+  /* 바닥에 닿는 그림자(좁고 진함) + 둘레로 퍼지는 그림자(넓고 옅음) */
+  --cast-sm: 0 0.1rem 0.18rem rgba(6, 2, 14, 0.8), 0 0.45rem 0.9rem rgba(10, 4, 20, 0.45);
+  --cast-md: 0 0.14rem 0.28rem rgba(6, 2, 14, 0.85), 0 0.8rem 1.7rem rgba(10, 4, 20, 0.5);
+  --cast-lg: 0 0.2rem 0.4rem rgba(6, 2, 14, 0.9), 0 1.4rem 3rem rgba(10, 4, 20, 0.55);
+
+  /* 빛을 받은 모서리에 얹는 얇은 띠 */
+  --rim-warm: inset 0 0.055rem 0 rgba(255, 228, 176, 0.5);
+  --rim-cool: inset 0 -0.055rem 0 rgba(90, 60, 140, 0.35);
 }

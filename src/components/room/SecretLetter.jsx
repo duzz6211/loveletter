@@ -35,11 +35,6 @@ const CAPTION = {
   draw: "편지를 꺼내는 중…",
 };
 
-function prefersReducedMotion() {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 /* -------------------------------------------------------------------------
    봉투에 감긴 실.
    pathLength=100 으로 길이를 정규화해서, CSS가 실제 경로 길이를 몰라도
@@ -111,7 +106,7 @@ function Sheet({ page, note, index, total, className }) {
  * @param {() => void} props.onClose
  */
 export default function SecretLetter({ note, onClose }) {
-  const [stage, setStage] = useState(() => (prefersReducedMotion() ? "read" : "untie"));
+  const [stage, setStage] = useState("untie");
   const [pageIndex, setPageIndex] = useState(0);
   const [turn, setTurn] = useState(null);   // { from, dir } — 넘기는 중인 장
 
