@@ -23,38 +23,9 @@ export const CLOSED_COPY = [
   "아무것도 반응이 일어나지 않네요..",
 ];
 
-/* -------------------------------------------------------------- 미리 보기
-
-   만드는 사람이 자정 전에 한 번 걸어 보기 위한 뒷문이다.
-
-     주소 끝에 ?preview=1 을 붙이면 그 탭에서만 잠금이 풀린다.
-     예: https://.../?preview=1
-
-   한 번 붙이고 나면 그 탭이 기억한다(sessionStorage) — 미궁을 지나 방으로
-   넘어가도 주소에서 떨어져 나가지 않는다. 탭을 닫으면 같이 사라진다.
-
-   ⚠ 이 저장소는 공개라 이 한 줄도 같이 보인다. 애초에 판정이 브라우저에서
-     이뤄지므로 감출 수 있는 것이 아니다(기기 시계를 돌려도 열린다).
-     확인이 끝나면 이 블록을 지우는 편이 깔끔하다.
-   -------------------------------------------------------------------- */
-
-const PREVIEW_KEY = "preview";
-
-/** 이 탭이 미리 보기 중인가. 주소에 붙어 있으면 기억해 둔다. */
-function isPreviewing() {
-  try {
-    const asked = new URLSearchParams(window.location.search).get(PREVIEW_KEY);
-    if (asked === "1") window.sessionStorage.setItem(PREVIEW_KEY, "1");
-    return window.sessionStorage.getItem(PREVIEW_KEY) === "1";
-  } catch {
-    /* 저장이 막힌 브라우저(시크릿 모드 등)에서는 주소만 보고 판단한다 */
-    return new URLSearchParams(window.location.search).get(PREVIEW_KEY) === "1";
-  }
-}
-
 /** 지금 열려 있는가. */
 export function isOpen(now = Date.now()) {
-  return isPreviewing() || now >= OPEN_AT;
+  return now >= OPEN_AT;
 }
 
 /** setTimeout 이 한 번에 셀 수 있는 최대치(약 24.8일). 넘기면 0 으로 접힌다. */
