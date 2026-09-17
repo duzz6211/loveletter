@@ -12,8 +12,7 @@
    어느 방으로 이어지는지는 data/rooms.js 의 HOTSPOTS 에 있다.
    ========================================================================= */
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useState } from "react";
 import {
   FRAMES,
   HOTSPOTS,
@@ -22,8 +21,7 @@ import {
   STRING_NOTES,
 } from "../../data/rooms.js";
 import useDoorTransition from "./useDoorTransition.js";
-import { useSession } from "../../session/SessionProvider.jsx";
-import { MAZE_PATH } from "../../lib/auth.js";
+import FrontDoor from "./FrontDoor.jsx";
 import useCollection from "../../lib/useCollection.js";
 import { useTick } from "../../lib/motion.js";
 
@@ -224,20 +222,14 @@ const SHAPES = {
 
 export default function RoomScene() {
   const { stageRef, openingKey, leaving, flashing, enter } = useDoorTransition();
-  const { signOut } = useSession();
-  const navigate = useNavigate();
 
   /** 지금 가리키고 있는 물건. 이름표는 하나만 뜬다. */
   const [hovered, setHovered] = useState(null);
 
-  /* 벽의 스위치 — 불을 끄면 이 탭의 세션이 끝나고 미궁 앞으로 돌아간다.
-     잘못 누르면 열 개의 벽을 처음부터 다시 지나야 해서 한 번 되묻는다. */
-  async function turnOffLight() {
-    const sure = window.confirm("불을 끄고 나갈까요?\n다시 들어오려면 열 개의 벽을 처음부터 지나야 해요.");
-    if (!sure) return;
-    await signOut();
-    navigate(MAZE_PATH, { replace: true });
-  }
+  /** 나가려 할 때 뜨는 쪽지. null | "found" | "go" (FrontDoor.jsx) */
+  const [leavingStep, setLeavingStep] = useState(null);
+
+  const dismissFrontDoor = useCallback(() => setLeavingStep(null), []);
 
   const sceneClass = ["roomscene", openingKey !== null && "is-opening", leaving && "is-leaving"]
     .filter(Boolean)
@@ -245,7 +237,10 @@ export default function RoomScene() {
 
   return (
     <div className={sceneClass}>
-      <div className="roomscene-view">
+      {/* 쪽지가 떠 있는 동안 방은 잠근다 — 덮개가 마우스는 막지만
+          키보드는 뒤로 넘어갈 수 있다(Maze.jsx 와 같은 어법). */}
+      <div className="roomscene-view" aria-hidden={leavingStep ? true : undefined}
+           inert={leavingStep ? "" : undefined}>
         <div className="roomscene-stage" ref={stageRef}>
           {/* ---- 방의 뼈대. 다섯 면이 꼭짓점을 공유한다(room-scene.css 참고) ---- */}
           <div className="rm-back" aria-hidden="true">
@@ -347,12 +342,12 @@ export default function RoomScene() {
             })}
           </nav>
 
-          {/* 벽의 조명 스위치 — 이 방에서 완전히 나가는 유일한 자리 */}
+          {/* 벽의 조명 스위치 — 이 선물이 끝나는 자리 (FrontDoor.jsx) */}
           <button
             className="rm-lightswitch"
             type="button"
             aria-label="불 끄고 나가기"
-            onClick={turnOffLight}
+            onClick={() => setLeavingStep("found")}
           >
             <i className="rm-lightswitch-toggle" aria-hidden="true" />
             <span className="rm-lightswitch-tag">불 끄고 나가기</span>
@@ -367,6 +362,12 @@ export default function RoomScene() {
       </div>
 
       <div className={`roomscene-flash${flashing ? " is-active" : ""}`} aria-hidden="true" />
+
+      <FrontDoor
+        step={leavingStep}
+        onAdvance={() => setLeavingStep("go")}
+        onDismiss={dismissFrontDoor}
+      />
     </div>
   );
 }
