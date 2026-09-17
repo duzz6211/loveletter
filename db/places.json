@@ -1,5 +1,33 @@
 [
   {
+    "id": "p1",
+    "name": "",
+    "visited_on": "",
+    "note": "",
+    "photo_path": "frame1.webp"
+  },
+  {
+    "id": "p2",
+    "name": "",
+    "visited_on": "",
+    "note": "",
+    "photo_path": "frame2.webp"
+  },
+  {
+    "id": "p3",
+    "name": "",
+    "visited_on": "",
+    "note": "",
+    "photo_path": "frame3.webp"
+  },
+  {
+    "id": "p4",
+    "name": "",
+    "visited_on": "",
+    "note": "",
+    "photo_path": "frame4.webp"
+  },
+  {
     "id": "p5",
     "name": "",
     "visited_on": "",

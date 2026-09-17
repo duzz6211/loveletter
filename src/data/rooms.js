@@ -224,28 +224,27 @@ export const STRING_NOTES = [
  * 왼쪽 벽에 걸린 액자들.
  *
  * 그림은 public/media/frames/*.webp 에서 읽는다. 같은 이름으로 덮어쓰면
- * 그대로 걸린다.
+ * 그대로 걸린다. src 를 null 로 두면 그림 대신 빈 매트가 걸린다.
  *
  * 자리 넷은 모두 세로다. 자리 비율은 지금 걸린 사진에 맞춰 두었다 —
  * 어긋난 만큼 object-fit: cover 가 잘라내므로, 맞춰 두면 0% 다.
  *
  *   id        자리 비율   지금 걸린 사진   사진 비율   잘리는 양
- *   motto     0.75        frame1.webp      0.75        0%
- *   moon      0.75        frame3.webp      0.75        0%
- *   botanic   0.56        frame2.webp      0.56        0%
- *   dial      0.75        frame4.webp      0.75        0%
+ *   motto     0.75        pic2.webp        0.75        0%
+ *   moon      0.56        pic1.webp        0.56        0%
+ *   botanic   0.56        pic3.webp        0.56        0%
+ *   dial      0.56        pic4.webp        0.56        0%
  *
  * 사진을 갈아 끼우면 room-scene.css 의 .obj-art-frame--* height 를 다시
  * 재야 한다. 재는 법은 그 파일 3-1 의 주석에 적어 두었다.
- * src 를 null 로 두면 그림 대신 빈 매트가 걸린다.
  *
  * @property {string} id    액자 모양을 고르는 키 (room-scene.css 의 .obj-art--*)
  * @property {string|null} src
  * @property {string} alt
  */
 export const FRAMES = [
-  { id: "motto",   src: "/media/frames/frame1.webp", alt: "[액자 속 사진 설명]" },
-  { id: "moon",    src: "/media/frames/frame3.webp", alt: "[액자 속 사진 설명]" },
-  { id: "botanic", src: "/media/frames/frame2.webp", alt: "[액자 속 사진 설명]" },
-  { id: "dial",    src: "/media/frames/frame4.webp", alt: "[액자 속 사진 설명]" },
+  { id: "motto",   src: "/media/frames/pic2.webp", alt: "[액자 속 사진 설명]" },
+  { id: "moon",    src: "/media/frames/pic1.webp", alt: "[액자 속 사진 설명]" },
+  { id: "botanic", src: "/media/frames/pic3.webp", alt: "[액자 속 사진 설명]" },
+  { id: "dial",    src: "/media/frames/pic4.webp", alt: "[액자 속 사진 설명]" },
 ];

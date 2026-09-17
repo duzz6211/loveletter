@@ -827,17 +827,21 @@
 
 /* 네 액자의 자리와 크기. 조금씩 기울여야 "걸어 둔 것"으로 보인다.
 
-   height 는 걸린 사진의 비율에 맞춰 잰 값이다 — 자리와 사진의 비율이 어긋난
-   만큼 object-fit: cover 가 잘라내므로, 맞춰 두면 사진이 온전히 들어온다.
-   사진을 갈아 끼우면 여기도 다시 재야 한다. 선언한 %비율과 화면 비율은
-   단순 비례가 아니다(테두리는 rem 고정, 매트 여백은 폭 기준 %) —
-   높이 두 개만 재 보면 1/비율 이 높이의 1차식이라 바로 풀린다.
+   width 와 height 는 걸린 사진의 비율에 맞춰 잰 값이다 — 자리와 사진의
+   비율이 어긋난 만큼 object-fit: cover 가 잘라내므로, 맞춰 두면 사진이
+   온전히 들어온다. 사진을 갈아 끼우면 여기도 다시 재야 한다.
+   선언한 %비율과 화면 비율은 단순 비례가 아니다(테두리는 rem 고정,
+   매트 여백은 폭 기준 %) — 높이 두 개만 재 보면 1/비율 이 높이의
+   1차식이라 바로 풀린다.
+
+   moon·dial 은 세로로 더 긴 사진(0.56)으로 갈아 끼우며 폭을 줄였다.
+   높이를 대신 늘리면 moon 은 botanic 에, dial 은 자리 바깥으로 넘친다.
 
    오른쪽 세 점은 4% 에서 시작해 7.75% 씩 띄웠다. */
 .obj-art-frame--motto   { left: 0;    top: 0;     width: 60%; height: 50.4%; transform: rotate(-0.6deg); }
-.obj-art-frame--moon    { left: 68%;  top: 4%;    width: 32%; height: 25.7%; transform: rotate(1.1deg); }
+.obj-art-frame--moon    { left: 68%;  top: 4%;    width: 27.1%; height: 25.7%; transform: rotate(1.1deg); }
 .obj-art-frame--botanic { left: 68%;  top: 37.4%; width: 28%; height: 26.8%; transform: rotate(-0.8deg); }
-.obj-art-frame--dial    { left: 64%;  top: 72%;   width: 32%; height: 25.6%; transform: rotate(0.7deg); }
+.obj-art-frame--dial    { left: 64%;  top: 72%;   width: 27%; height: 25.6%; transform: rotate(0.7deg); }
 
 /* ------------------------------------------------- 3-2. 줄에 매달린 쪽지 */
 
