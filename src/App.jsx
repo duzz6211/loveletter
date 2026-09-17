@@ -2,6 +2,9 @@
    App.jsx — 라우트 정의
    /            미궁 (공개). 이미 인증됐으면 아카이브로 보낸다.
    그 외 전부   RequireAuth 로 감싼 보호 라우트
+
+   단, 정해진 순간 전에는 라우트를 아예 열지 않는다. 어느 주소로 들어와도
+   가림막 하나만 선다 (lib/openAt.js).
    ========================================================================= */
 
 import { lazy, Suspense, useEffect } from "react";
@@ -9,6 +12,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import RequireAuth from "./routes/RequireAuth.jsx";
 import AuthVeil from "./components/AuthVeil.jsx";
+import NotYet from "./components/NotYet.jsx";
+import { useOpened } from "./lib/openAt.js";
 import { useSession } from "./session/SessionProvider.jsx";
 import { ARCHIVE_PATH } from "./lib/auth.js";
 
@@ -61,6 +66,10 @@ function Protected({ children }) {
 }
 
 export default function App() {
+  /* 자정이 지나면 여기가 다시 그려지면서 새로고침 없이 문이 열린다. */
+  const opened = useOpened();
+  if (!opened) return <NotYet />;
+
   return (
     <Routes>
       <Route path="/" element={<MazeRoute />} />
